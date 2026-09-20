@@ -1,0 +1,47 @@
+package io.github.dingyi222666.luabytecode.bytecode
+
+
+import java.nio.charset.StandardCharsets
+
+/**
+ * A Lua string value, kept as raw bytes.
+ *
+ * Lua strings are byte sequences, not text: keeping the original bytes allows a
+ * chunk to be re-emitted byte for byte. Use [utf8] for a best effort text view
+ * and [latin1] for a lossless one-byte-per-char view.
+ */
+class LuaString(val bytes: ByteArray) {
+
+    val size: Int
+        get() = bytes.size
+
+    val isEmpty: Boolean
+        get() = bytes.isEmpty()
+
+    /** Best effort UTF-8 decoding (malformed sequences are replaced with U+FFFD). */
+    val utf8: String by lazy(LazyThreadSafetyMode.NONE) {
+        String(bytes, StandardCharsets.UTF_8)
+    }
+
+    /** Lossless decoding: byte `b` becomes the char `U+00b`. */
+    val latin1: String by lazy(LazyThreadSafetyMode.NONE) {
+        String(bytes, StandardCharsets.ISO_8859_1)
+    }
+
+    operator fun get(index: Int): Byte = bytes[index]
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is LuaString && bytes.contentEquals(other.bytes))
+
+    override fun hashCode(): Int = bytes.contentHashCode()
+
+    override fun toString(): String = utf8
+
+    companion object {
+        @JvmStatic
+        fun of(text: String): LuaString = LuaString(text.toByteArray(StandardCharsets.UTF_8))
+
+        @JvmStatic
+        fun of(bytes: ByteArray): LuaString = LuaString(bytes)
+    }
+}

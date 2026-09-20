@@ -1,24 +1,21 @@
-package io.github.dingyi222666
+package io.github.dingyi222666.luabytecode.legacy.stringfog
 
-
-import io.github.dingyi222666.io.github.dingyi222666.luastringfog.*
-import io.github.dingyi222666.luaparser.lexer.LuaLexer
-import io.github.dingyi222666.luaparser.lexer.LuaTokenTypes
-
-fun main() {
-    println(stringFog7(code, listOf("print","table")))
-
-
+/**
+ * Legacy source level string obfuscation demo: lexes Lua source with the external
+ * luaparser dependency and rewrites every string literal with stringFog7.
+ */
+fun stringFogDemo() {
+    println(stringFog7(SAMPLE_CODE, listOf("print", "table")))
 }
 
-val code = """
+private val SAMPLE_CODE = """
         local a = "hello world, 你好 世界"
         local b = "hello world"
         local c = "hello world"
         local d = "safkljhdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdffsdfsdsfdfdsfdfdfdafadfdadfjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjbjjjjjjjjjjjjjjjbjbjbjbjbjbjbjbjjjjj"
         local e = "safkljhdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjdjbjjjjjjjjjjjjjjjbjbjbjbjbjbjbjbjjjjj"
         local f = {b = b,c=c,a = a,d = d,e =e}
-        
+
         print(f.a)
         print(f.b)
         print(f.c)
@@ -26,13 +23,13 @@ val code = """
         print(f.e)
         print("xxxxxxxxxxxxx")
         print("xx")
-        
-        function a(t) 
+
+        function a(t)
             for i=1, 10 do
                 t[i] = i
             end
            return t
-        end  
+        end
         function c(s) return s end
         print(table.concat(a({}),","))
         print(c "hello world")

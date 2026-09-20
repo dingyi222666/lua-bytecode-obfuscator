@@ -1,4 +1,4 @@
-package io.github.dingyi222666.io.github.dingyi222666.luastringfog
+package io.github.dingyi222666.luabytecode.legacy.stringfog
 
 import io.github.dingyi222666.luaparser.lexer.LuaLexer
 import io.github.dingyi222666.luaparser.lexer.LuaTokenTypes

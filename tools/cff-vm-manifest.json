@@ -1,0 +1,19 @@
+{
+  "integerBits": 64,
+  "numberBits": 64,
+  "instructionBits": 32,
+  "builds": {
+    "5.3.6": {
+      "lvm.c": "70b57c5a2f2ba8f19d48b0dacd1ee23ee28323ba084bef2a2686348cee5d96a4",
+      "lopcodes.h": "f6ed980dc9cab58f1392757baabc9f1fecf5823148ca10c968c6f79fad7cda36"
+    },
+    "5.4.6": {
+      "lvm.c": "abe9fe01c6b9eaac553ea69ab9f858dc0aca7926952ce9c8bbfe31d3d3cb0822",
+      "lopcodes.h": "075c74184a89416b62318d9ccf3e6cfb1ed971bc12c0594a0669b0724e319270"
+    },
+    "5.5.1": {
+      "lvm.c": "632ca1fc6400301e3b11195d4830e948e6b4a50b6262187307eb8afe1f769c22",
+      "lopcodes.h": "46e41e9cadc08527139b3bda14f321d3e2c196eb6aedabfe4fdf21b2ee5f201d"
+    }
+  }
+}

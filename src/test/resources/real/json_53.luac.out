@@ -1,0 +1,2 @@
+{"nested":{"ratio":0.5,"ok":true},"tags":["obfuscate","bytecode"],"version":5.4,"name":"lua 字节码"}
+"quote \" backslash \\ newline \n tab \t"

@@ -40,3 +40,14 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+### Kotlin/Native & caches ###
+.kotlin/
+
+### Python ###
+__pycache__/
+*.pyc
+
+### Local test artifacts ###
+blind.orig
+blind.out
+luac.out
