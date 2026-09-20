@@ -18,10 +18,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          # pinned so the pre-seeded tool-cache copy on the runners is reused
+          java-version: 17.0.20.1+1
           cache: gradle
 
       - name: Build
