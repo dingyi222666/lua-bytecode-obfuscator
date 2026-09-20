@@ -1,7 +1,9 @@
 // Pure Lua bytecode model: chunk header, prototypes, instructions, opcodes and
 // constants as plain Kotlin data structures (see docs/roadmap-kmp-modules.md).
 plugins {
-    kotlin("multiplatform") version "2.4.20"
+    // Version is declared in the root build.gradle.kts (apply false): the
+    // plugin is already on the shared classpath via the kotlin jvm plugin.
+    kotlin("multiplatform")
 }
 
 group = "io.github.dingyi222666"
