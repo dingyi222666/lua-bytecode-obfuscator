@@ -17,13 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          # pinned so the pre-seeded tool-cache copy on the runners is reused
-          java-version: 17.0.20.1+1
-          cache: gradle
+      - name: Set up JDK 17 (pre-seeded on runner)
+        run: |
+          JDK="$RUNNER_TOOL_CACHE/Java_Temurin-Hotspot_jdk/17.0.20.1+1/x64"
+          [ -x "$JDK/bin/java" ] || { echo "JDK not found at $JDK"; exit 1; }
+          echo "JAVA_HOME=$JDK" >> "$GITHUB_ENV"
+          echo "$JDK/bin" >> "$GITHUB_PATH"
 
       - name: Build
         run: ./gradlew build --stacktrace
