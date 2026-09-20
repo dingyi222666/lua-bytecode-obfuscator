@@ -243,13 +243,10 @@ data class LuaInstruction(val raw: Int, val version: LuaBytecodeVersion) {
         private const val A_SIZE = 8
 
         /** An instruction carrying only [opcode]. */
-        @JvmStatic
         fun of(version: LuaBytecodeVersion, opcode: Int): LuaInstruction =
             LuaInstruction(opcode, version).withOpcode(opcode)
 
         /** Builds an `iABC` instruction. `k` is ignored (and must be 0) for 5.3. */
-        @JvmStatic
-        @JvmOverloads
         fun abc(
             version: LuaBytecodeVersion,
             opcode: Int,
@@ -268,28 +265,22 @@ data class LuaInstruction(val raw: Int, val version: LuaBytecodeVersion) {
         }
 
         /** Builds an `iABx` instruction. */
-        @JvmStatic
         fun abx(version: LuaBytecodeVersion, opcode: Int, a: Int, bx: Int): LuaInstruction =
             of(version, opcode).withA(a).withBx(bx)
 
         /** Builds an `iAsBx` instruction. */
-        @JvmStatic
         fun asbx(version: LuaBytecodeVersion, opcode: Int, a: Int, sbx: Int): LuaInstruction =
             of(version, opcode).withA(a).withSbx(sbx)
 
         /** Builds an `iAx` instruction. */
-        @JvmStatic
         fun ax(version: LuaBytecodeVersion, opcode: Int, ax: Int): LuaInstruction =
             of(version, opcode).withAx(ax)
 
         /** Builds an `isJ` instruction (5.4 / 5.5 only). */
-        @JvmStatic
         fun sj(version: LuaBytecodeVersion, opcode: Int, sj: Int): LuaInstruction =
             of(version, opcode).withSj(sj)
 
         /** Builds a 5.5 `ivABC` instruction. */
-        @JvmStatic
-        @JvmOverloads
         fun vabc(
             version: LuaBytecodeVersion,
             opcode: Int,

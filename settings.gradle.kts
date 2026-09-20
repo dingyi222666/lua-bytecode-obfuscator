@@ -19,3 +19,5 @@ plugins {
 
 rootProject.name = "lua-bytecode-obfuscator"
 
+include(":lua-bytecode-model")
+

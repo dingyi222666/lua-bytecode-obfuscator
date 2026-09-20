@@ -99,12 +99,10 @@ enum class LuaBytecodeVersion(
         const val PF_FIXED = 4
 
         /** Returns the matching version, or `null` when the byte is not supported. */
-        @JvmStatic
         fun fromVersionByte(versionByte: Int): LuaBytecodeVersion? =
             entries.firstOrNull { it.versionByte == versionByte }
 
         /** Comma separated list of the supported version bytes, for error messages. */
-        @JvmStatic
         fun supportedVersionsText(): String =
             entries.joinToString(", ") { "0x%02X (%s)".format(it.versionByte, it.displayName) }
     }

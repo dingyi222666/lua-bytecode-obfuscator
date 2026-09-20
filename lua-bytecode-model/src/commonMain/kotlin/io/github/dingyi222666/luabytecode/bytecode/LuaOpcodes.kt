@@ -57,7 +57,6 @@ object LuaOpcodes {
     )
 
     /** All opcode names of [version], indexed by the numeric opcode. */
-    @JvmStatic
     fun names(version: LuaBytecodeVersion): List<String> = when (version) {
         LuaBytecodeVersion.LUA_5_3 -> NAMES_LUA_5_3
         LuaBytecodeVersion.LUA_5_4 -> NAMES_LUA_5_4
@@ -65,14 +64,12 @@ object LuaOpcodes {
     }
 
     /** The name of [opcode] for [version], or `UNKNOWN(n)` when out of range. */
-    @JvmStatic
     fun nameOf(version: LuaBytecodeVersion, opcode: Int): String {
         val names = names(version)
         return if (opcode in names.indices) names[opcode] else "UNKNOWN($opcode)"
     }
 
     /** The numeric opcode of [name] for [version], or `null` when unknown. */
-    @JvmStatic
     fun opcodeOf(version: LuaBytecodeVersion, name: String): Int? =
         names(version).indexOf(name).takeIf { it >= 0 }
 }

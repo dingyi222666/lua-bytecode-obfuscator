@@ -254,7 +254,6 @@ object LuaOpcodeModes {
     )
 
     /** The operand layout of [opcode], or `null` when the opcode is out of range. */
-    @JvmStatic
     fun modeOf(version: LuaBytecodeVersion, opcode: Int): LuaOpcodeMode? = when (version) {
         LuaBytecodeVersion.LUA_5_3 -> MODES_LUA_5_3.getOrNull(opcode)
         LuaBytecodeVersion.LUA_5_4 -> MODES_LUA_5_4.getOrNull(opcode)
@@ -262,7 +261,6 @@ object LuaOpcodeModes {
     }
 
     /** Number of opcodes of [version]. */
-    @JvmStatic
     fun count(version: LuaBytecodeVersion): Int = when (version) {
         LuaBytecodeVersion.LUA_5_3 -> MODES_LUA_5_3.size
         LuaBytecodeVersion.LUA_5_4 -> MODES_LUA_5_4.size
