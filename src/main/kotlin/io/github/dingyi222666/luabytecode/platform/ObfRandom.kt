@@ -176,7 +176,7 @@ class ObfRandom(seed: Long) : kotlin.random.Random() {
         var i = fromIndex
         while (i < toIndex) {
             var rnd = nextInt()
-            var n = minOf(toIndex - i, Int.SIZE_BITS / Byte.SIZE)
+            var n = minOf(toIndex - i, Int.SIZE_BITS / Byte.SIZE_BITS)
             while (n-- > 0) {
                 array[i++] = rnd.toByte()
                 rnd = rnd shr 8
