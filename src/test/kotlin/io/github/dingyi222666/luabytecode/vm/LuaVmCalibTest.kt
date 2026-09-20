@@ -4,12 +4,15 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.File
 import kotlin.test.Test
+import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Temporary calibration dump (goal round 107). */
 class LuaVmCalibTest {
     @Test
     fun dump() {
-        val chunk = LuaChunkLoader.load(File("/tmp/super/calib_54.luac"), LuaBytecodeVersion.LUA_5_4)
+        val input = File("/tmp/super/calib_54.luac")
+        assumeTrue(input.isFile) { "calibration input not generated: $input" }
+        val chunk = LuaChunkLoader.load(input, LuaBytecodeVersion.LUA_5_4)
         val out = StringBuilder()
         chunk.mainPrototype.code.forEachIndexed { i, insn ->
             out.append(
