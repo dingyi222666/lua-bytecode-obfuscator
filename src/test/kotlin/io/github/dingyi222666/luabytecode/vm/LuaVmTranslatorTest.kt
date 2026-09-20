@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.File
@@ -10,7 +11,7 @@ import kotlin.test.assertTrue
 
 /** P4.1: a translated prototype must behave exactly like the Lua prototype it came from. */
 class LuaVmTranslatorTest {
-    private val map = LuaVmProgram.OpcodeMap.random(java.util.Random(42L))
+    private val map = LuaVmProgram.OpcodeMap.random(ObfRandom(42L))
 
     private fun load(name: String) =
         LuaChunkLoader.load(File("src/test/resources/real/ctor/$name"), LuaBytecodeVersion.LUA_5_3)
@@ -43,8 +44,8 @@ class LuaVmTranslatorTest {
 
         // P4.3 polymorphic ISA: two chunks (or two runs) derive different opcode bijections,
         // so no opcode number has a portable meaning. The semantics must stay identical.
-        val mapA = LuaVmProgram.OpcodeMap.random(java.util.Random(1L))
-        val mapB = LuaVmProgram.OpcodeMap.random(java.util.Random(2L))
+        val mapA = LuaVmProgram.OpcodeMap.random(ObfRandom(1L))
+        val mapB = LuaVmProgram.OpcodeMap.random(ObfRandom(2L))
         val programA = LuaVmTranslator.translate(inner, mapA, scratch = inner.maxStackSize)!!
         val programB = LuaVmTranslator.translate(inner, mapB, scratch = inner.maxStackSize)!!
 

@@ -1,6 +1,7 @@
 package io.github.dingyi222666.luabytecode.bytecode.support
 
-import java.util.Random
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
+
 
 /**
  * Full-cycle LCG (linear congruential generator) over Z/2^32 — the shared
@@ -61,7 +62,7 @@ import java.util.Random
  *
  * Kotlin keystream (same as the VM interpreter's `M.crypt`):
  * ```kotlin
- * val spec = LuaLcg.Spec.random(Random(chunkSeed))
+ * val spec = LuaLcg.Spec.random(ObfRandom(chunkSeed))
  * var state = spec.applySeed(mixedSeed)           // any non-zero start is fine
  * words.forEachIndexed { i, w -> out[i] = w xor spec.step(state).also { state = it } }
  * ```
@@ -137,7 +138,7 @@ data class LcgSpec(
          *   probability, and bounded so Lua/Kotlin arithmetic stays exact.
          * * `increment = 1 + 2k`, `k ∈ [0, 2^31)` — any odd value.
          */
-        fun random(random: Random): LcgSpec {
+        fun random(random: ObfRandom): LcgSpec {
             val t = 1L + (random.nextLong() ushr 1) % ((1L shl 29) - 1)
             val j = if (random.nextBoolean()) 1L else 0L
             val multiplier = 1L + 4L * t + (j shl 32)
@@ -147,7 +148,7 @@ data class LcgSpec(
         }
 
         /** [random] but throws when the (Hull–Dobell-checked) result would not be full cycle. */
-        fun requireRandom(random: Random): LcgSpec = random(random).also { it.requireFullCycle() }
+        fun requireRandom(random: ObfRandom): LcgSpec = random(random).also { it.requireFullCycle() }
     }
 
     /**

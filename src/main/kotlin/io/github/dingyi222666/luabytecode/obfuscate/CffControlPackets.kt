@@ -1,9 +1,9 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.*
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
-import java.util.Random
 
 /** All control values are short lived: no original CALL is crossed. */
 internal class CffControlPackets(
@@ -15,7 +15,7 @@ internal class CffControlPackets(
     private val labels: LuaControlFlowFlattening.LabelSupply,
     private val emit: (LuaInstruction) -> Unit,
     private val line: () -> Unit,
-    private val random: Random,
+    private val random: ObfRandom,
 ) {
     data class Packet(val namespace: Int, val local: Int, val target: Int)
     data class Site(val pc: Int, val target: Int, val variableAtEntry: Boolean = false)

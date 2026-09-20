@@ -1,6 +1,6 @@
 package io.github.dingyi222666.luabytecode.bytecode.support
 
-import java.util.Random
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -31,7 +31,7 @@ class LuaDecodeVariantsTest {
 
     @Test
     fun `every step form equals the reference LCG step`() {
-        val spec = LcgSpec.random(Random(7L)).requireFullCycle()
+        val spec = LcgSpec.random(ObfRandom(7L)).requireFullCycle()
         for (form in LuaDecodeVariants.StepForm.entries) {
             var state = spec.applySeed(20260917L)
             repeat(500) { i ->
@@ -60,7 +60,7 @@ class LuaDecodeVariantsTest {
 
     @Test
     fun `every byte extract equals the third byte`() {
-        val random = Random(42L)
+        val random = ObfRandom(42L)
         for (form in LuaDecodeVariants.ByteExtract.entries) {
             repeat(2000) {
                 val state = random.nextLong() and 0xFFFFFFFFL
@@ -75,7 +75,7 @@ class LuaDecodeVariantsTest {
 
     @Test
     fun `seed init mirrors are zero avoiding and map into the 32 bit domain`() {
-        val random = Random(99L)
+        val random = ObfRandom(99L)
         for (init in LuaDecodeVariants.SeedInit.entries) {
             val draw = LuaDecodeVariants.Draw(init, LuaDecodeVariants.StepForm.DIRECT, LuaDecodeVariants.ByteExtract.FLOOR_DIV,
                 m1 = 0x9DE39CADL, a1 = 0x12345679L, m2 = 5L, a2 = 7L, k1 = 3L, guard = 2654435769L)
@@ -135,7 +135,7 @@ class LuaDecodeVariantsTest {
 
     @Test
     fun `random draws are raw-md5 unique across 100 chunks`() {
-        val random = Random(2026L)
+        val random = ObfRandom(2026L)
         val seen = HashSet<String>()
         val combined = HashSet<String>()
         repeat(100) {
@@ -155,7 +155,7 @@ class LuaDecodeVariantsTest {
 
     @Test
     fun `generated skeleton composes into a working decode loop in kotlin mirror form`() {
-        val random = Random(5L)
+        val random = ObfRandom(5L)
         repeat(20) {
             val draw = LuaDecodeVariants.draw(random)
             val spec = LcgSpec.random(random).requireFullCycle()

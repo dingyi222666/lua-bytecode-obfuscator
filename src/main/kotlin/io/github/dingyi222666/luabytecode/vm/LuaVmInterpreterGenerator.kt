@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
+
 /**
  * P4.3 handler heterogeneity: instead of shipping one fixed interpreter, each chunk gets its
  * **own** interpreter source, generated here. The handlers are semantically equivalent but
@@ -53,7 +55,7 @@ object LuaVmInterpreterGenerator {
         val headerMul: Long,
     )
 
-    internal fun drawNames(random: java.util.Random): Names {
+    internal fun drawNames(random: ObfRandom): Names {
         fun ident(): String {
             val alphabet = "abcdefghijklmnopqrstuvwxyz"
             var s = "" + alphabet[random.nextInt(26)]
@@ -86,7 +88,7 @@ object LuaVmInterpreterGenerator {
         )
     }
 
-    private fun handler(op: String, random: java.util.Random): String = when (op) {
+    private fun handler(op: String, random: ObfRandom): String = when (op) {
         "LOADK" -> when (random.nextInt(3)) {
             0 -> "R[a] = args.k[b]"
             1 -> "local kv = args.k[b]; R[a] = kv"
@@ -245,7 +247,7 @@ object LuaVmInterpreterGenerator {
         else -> error("no handler for $op")
     }
 
-    private fun handlerBody(op: String, random: java.util.Random, run: String): String =
+    private fun handlerBody(op: String, random: ObfRandom, run: String): String =
         handler(op, random).replace("RUN", run)
 
     // ------------------------------------------------------------------ dispatch skeletons (VM-2)
@@ -261,7 +263,7 @@ object LuaVmInterpreterGenerator {
      */
     private fun dispatch(
         order: List<String>,
-        random: java.util.Random,
+        random: ObfRandom,
         run: String,
         map: LuaVmProgram.OpcodeMap,
     ): DispatchShape = when (random.nextInt(3)) {
@@ -342,7 +344,7 @@ object LuaVmInterpreterGenerator {
      */
     data class Parts(val head: String, val tail: String, val names: Names)
 
-    fun generateModuleParts(random: java.util.Random, map: LuaVmProgram.OpcodeMap, cipher: LuaVmProgram.Cipher,
+    fun generateModuleParts(random: ObfRandom, map: LuaVmProgram.OpcodeMap, cipher: LuaVmProgram.Cipher,
         version: io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion = io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion.LUA_5_3,
     ): Parts {
         val names = drawNames(random)

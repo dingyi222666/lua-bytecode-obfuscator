@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.edit.edit
@@ -50,7 +51,7 @@ class LuaVmSemanticBridgeTest {
                 val seen = chunk.prototypes.flatMap { p -> p.code.map { it.opcodeName } }.toSet()
                 assertTrue(seen.containsAll(expectedOpcodes), "Missing ${expectedOpcodes - seen}: $seen")
                 for (seed in listOf(0L, 11L, 42L, 55L)) {
-                    val product = LuaVmObfuscation.emitModule(chunk, java.util.Random(seed), LuaVmObfuscation.Options(seed))
+                    val product = LuaVmObfuscation.emitModule(chunk, ObfRandom(seed), LuaVmObfuscation.Options(seed))
                     assertNotNull(product, "$version seed=$seed refused: $seen")
                     val module = File(dir, "module.lua").apply { writeText(product) }
                     assertEquals(baseline, run(lua, module.path), "$version seed=$seed")

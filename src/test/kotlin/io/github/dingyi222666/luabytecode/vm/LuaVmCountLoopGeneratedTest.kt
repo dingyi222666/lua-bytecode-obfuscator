@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.File
@@ -19,7 +20,7 @@ class LuaVmCountLoopGeneratedTest {
         if (!lua.canExecute()) return
         val suffix = if (version == LuaBytecodeVersion.LUA_5_4) "54" else "55"
         val chunk = LuaChunkLoader.load(File("src/test/resources/real/ctor/c14_numericfor_print_$suffix.luac"), version)
-        val module = LuaVmObfuscation.emitModule(chunk, java.util.Random(seed), LuaVmObfuscation.Options(seed = seed, enableCountBasedLoops = true))
+        val module = LuaVmObfuscation.emitModule(chunk, ObfRandom(seed), LuaVmObfuscation.Options(seed = seed, enableCountBasedLoops = true))
         assertNotNull(module)
         val file = File.createTempFile("vm-count-$suffix", ".lua")
         file.writeText(module)

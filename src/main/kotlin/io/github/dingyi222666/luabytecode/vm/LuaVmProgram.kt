@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
+
 /**
  * P4.1: the private instruction set of the forthcoming Lua bytecode VM.
  *
@@ -117,7 +119,7 @@ object LuaVmProgram {
 
         companion object {
             /** Deterministic from the caller's seeded RNG so results are reproducible. */
-            fun random(random: java.util.Random): OpcodeMap {
+            fun random(random: ObfRandom): OpcodeMap {
                 val order = MutableList(Op.entries.size) { it }
                 order.shuffle(random)
                 return OpcodeMap(order.toIntArray())
@@ -219,7 +221,7 @@ object LuaVmProgram {
              * fallback are drawn per chunk too, so no fixed mixing fingerprint survives in any
              * emitted module. Deterministic in the caller's RNG.
              */
-            fun random(random: java.util.Random): Cipher {
+            fun random(random: ObfRandom): Cipher {
                 while (true) {
                     val mul = ((random.nextLong() and 0xFFFFFFFFL) or 1L) // odd
                     val mulF = (mul and 0xFFFFFFFFL) - ((mul and 3L) - 1L) // ≡ 1 (mod 4)

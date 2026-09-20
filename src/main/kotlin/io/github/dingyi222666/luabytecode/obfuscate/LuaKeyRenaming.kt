@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
@@ -10,7 +11,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.analysis.constantOperands
 import java.util.IdentityHashMap
-import java.util.Random
 
 /**
  * Tunables of [LuaKeyRenaming] (LEAK-1 key half).
@@ -85,7 +85,7 @@ object LuaKeyRenaming {
     ): KeyRenamingResult {
         val dbg = System.getenv("KEY_DEBUG") != null
         if (dbg) System.err.println("[KEY] apply called on ${chunk.prototypes.size} prototypes")
-        val random = Random(if (config.seed != 0L) config.seed else contentSeed(chunk))
+        val random = ObfRandom(if (config.seed != 0L) config.seed else contentSeed(chunk))
         var renamed = 0
         var sites = 0
         var skipped = 0

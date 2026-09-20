@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.File
@@ -38,7 +39,7 @@ class LuaVmNumericForTest {
             File("src/test/resources/real/ctor/c01_numericfor_53.luac"),
             LuaBytecodeVersion.LUA_5_3,
         )
-        val map = LuaVmProgram.OpcodeMap.random(java.util.Random(9L))
+        val map = LuaVmProgram.OpcodeMap.random(ObfRandom(9L))
         val program = LuaVmTranslator.translate(chunk.mainPrototype, map, scratch = chunk.mainPrototype.maxStackSize)
         assertNotNull(program, "the main chunk of c01_numericfor must now be translatable")
 
@@ -54,7 +55,7 @@ class LuaVmNumericForTest {
             File("src/test/resources/real/ctor/c14_numericfor_print_53.luac"),
             LuaBytecodeVersion.LUA_5_3,
         )
-        val map = LuaVmProgram.OpcodeMap.random(java.util.Random(11L))
+        val map = LuaVmProgram.OpcodeMap.random(ObfRandom(11L))
         val program = LuaVmTranslator.translate(chunk.mainPrototype, map, scratch = chunk.mainPrototype.maxStackSize)
         assertNotNull(program, "the c14 numeric for fixture must be inside the subset")
 
@@ -77,7 +78,7 @@ class LuaVmNumericForTest {
                 File("src/test/resources/real/ctor/c14_numericfor_print_$suffix.luac"),
                 version,
             )
-            val map = LuaVmProgram.OpcodeMap.random(java.util.Random(13L))
+            val map = LuaVmProgram.OpcodeMap.random(ObfRandom(13L))
             assertNull(
                 LuaVmTranslator.translate(chunk.mainPrototype, map, scratch = chunk.mainPrototype.maxStackSize),
                 "a $version numeric for must be refused: its layout is count based and not modelled yet",

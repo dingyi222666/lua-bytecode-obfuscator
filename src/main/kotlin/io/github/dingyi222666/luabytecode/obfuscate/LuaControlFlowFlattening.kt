@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
@@ -13,7 +14,6 @@ import io.github.dingyi222666.luabytecode.bytecode.analysis.retargeted
 import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.analysis.skipsNextInstruction
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
-import java.util.Random
 
 /** Single CFF emitter, with transactional candidates and explicit feature gates. */
 data class ControlFlowFlatteningConfig(
@@ -297,7 +297,7 @@ object LuaControlFlowFlattening {
         var guards = 0
 
         val version = prototype.version
-        val random = Random(seedFor(config.seed, chunk, prototype))
+        val random = ObfRandom(seedFor(config.seed, chunk, prototype))
         val blockOf = IntArray(size) { -1 }
         for ((index, unit) in units.withIndex()) for (pc in unit) blockOf[pc] = index
         val labels = IntArray(units.size)

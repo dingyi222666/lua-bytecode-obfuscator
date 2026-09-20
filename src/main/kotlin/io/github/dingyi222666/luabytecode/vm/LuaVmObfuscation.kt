@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
@@ -84,12 +85,12 @@ object LuaVmObfuscation {
         val interpreterCff: Boolean = true,
     )
 
-    fun emitModule(chunk: LuaChunk, random: java.util.Random, options: Options = Options()): String? {
+    fun emitModule(chunk: LuaChunk, random: ObfRandom, options: Options = Options()): String? {
         return emitModuleDetailed(chunk, random, options)?.module
     }
 
     /** Strict VM entry point: the input representation must pass source CFF before lifting. */
-    fun obfuscated(chunk: LuaChunk, random: java.util.Random, options: Options = Options(
+    fun obfuscated(chunk: LuaChunk, random: ObfRandom, options: Options = Options(
         inputObfuscation = ObfuscationConfig.AGGRESSIVE,
         sourceCff = null,
         requireSourceCff = false,
@@ -101,7 +102,7 @@ object LuaVmObfuscation {
      * CFF-protected when the generated host interpreter has not gone through the second CFF
      * compilation/lift/validation stage yet.
      */
-    fun emitModuleDetailed(chunk: LuaChunk, random: java.util.Random, options: Options = Options()): Emission? {
+    fun emitModuleDetailed(chunk: LuaChunk, random: ObfRandom, options: Options = Options()): Emission? {
         val working = cloneChunk(chunk)
         val obfuscationReport = options.inputObfuscation?.let { config ->
             LuaObfuscator.obfuscate(working, config.copy(masterSeed = options.seed))

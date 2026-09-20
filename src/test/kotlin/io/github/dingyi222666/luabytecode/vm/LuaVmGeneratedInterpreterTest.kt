@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.File
@@ -21,7 +22,7 @@ class LuaVmGeneratedInterpreterTest {
             File("src/test/resources/real/ctor/c01_numericfor_53.luac"),
             LuaBytecodeVersion.LUA_5_3,
         )
-        val module = LuaVmObfuscation.emitModule(chunk, java.util.Random(seed), LuaVmObfuscation.Options(seed = seed))
+        val module = LuaVmObfuscation.emitModule(chunk, ObfRandom(seed), LuaVmObfuscation.Options(seed = seed))
         assertNotNull(module, "c01_numericfor must be inside the VM subset")
         return module
     }

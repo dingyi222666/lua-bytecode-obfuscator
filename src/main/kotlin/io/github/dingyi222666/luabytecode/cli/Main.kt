@@ -16,6 +16,7 @@ import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscator
 import io.github.dingyi222666.luabytecode.obfuscate.OpaquePredicate
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
 import io.github.dingyi222666.luabytecode.obfuscate.StringEncryptionConfig
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import java.io.File
 
 private const val USAGE = """
@@ -235,8 +236,8 @@ fun main(args: Array<String>) {
             // unseeded source). Same policy as the obfuscation pipeline:
             // default per-run SecureRandom, `--seed` pins, `--seed 0` legacy.
             val vmRandom = when (masterSeed) {
-                null -> java.security.SecureRandom()
-                else -> java.util.Random(masterSeed)
+                null -> ObfRandom(java.security.SecureRandom().nextLong())
+                else -> ObfRandom(masterSeed)
             }
             val module = io.github.dingyi222666.luabytecode.vm.LuaVmObfuscation.emitModule(
                 chunk,

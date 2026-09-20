@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
@@ -18,7 +19,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.insertInstructions
 import io.github.dingyi222666.luabytecode.bytecode.edit.renameLocalAndUpvalueNames
 import io.github.dingyi222666.luabytecode.bytecode.support.LuaRegisterAnalysis
 import java.util.ArrayDeque
-import java.util.Random
 
 /**
  * Tunables of [LuaRegisterObfuscator] (Pass R: register / local obfuscation).
@@ -153,7 +153,7 @@ object LuaRegisterObfuscator {
         chunk: LuaChunk,
         config: RegisterObfuscationConfig = RegisterObfuscationConfig(),
     ): RegisterObfuscationReport {
-        val random = Random(config.seed)
+        val random = ObfRandom(config.seed)
         var renamedLocalsPrototypes = 0
         var renamedLocals = 0
         var renamedRegisterPrototypes = 0
@@ -201,7 +201,7 @@ object LuaRegisterObfuscator {
      * `(...)` vararg entries and nameless entries have nothing to leak and are
      * renamed anyway to keep the name space uniform.
      */
-    private fun rewriteLocalNames(prototype: LuaPrototype, random: Random): Int {
+    private fun rewriteLocalNames(prototype: LuaPrototype, random: ObfRandom): Int {
         if (prototype.localVariables.isEmpty() && prototype.upvalueNames.isEmpty()) {
             return 0
         }
@@ -218,9 +218,9 @@ object LuaRegisterObfuscator {
     }
 
     /** `l0`, `l7`, ... — a short per prototype prefix. */
-    private fun syntheticPrefix(random: Random): String = "l${random.nextInt(10)}"
+    private fun syntheticPrefix(random: ObfRandom): String = "l${random.nextInt(10)}"
 
-    private fun hex4(random: Random): String {
+    private fun hex4(random: ObfRandom): String {
         val value = random.nextInt(1 shl (4 * NAME_SUFFIX_CHARS))
         return "%0${NAME_SUFFIX_CHARS}x".format(value)
     }
@@ -232,7 +232,7 @@ object LuaRegisterObfuscator {
      * prototype is skipped (no headroom, no unpinned register worth moving, or
      * a structural shape the permutation cannot serve).
      */
-    private fun permuteRegisters(prototype: LuaPrototype, random: Random): Boolean {
+    private fun permuteRegisters(prototype: LuaPrototype, random: ObfRandom): Boolean {
         val debug = System.getenv("B4_DEBUG") != null
         val code = prototype.code
         if (code.isEmpty()) {
@@ -579,7 +579,7 @@ object LuaRegisterObfuscator {
      *
      * @return the number of registers absorbed into a host.
      */
-    private fun mergeRegisters(prototype: LuaPrototype, random: Random): Int {
+    private fun mergeRegisters(prototype: LuaPrototype, random: ObfRandom): Int {
         val code = prototype.code
         val debug = System.getenv("B4_DEBUG") != null
         if (code.size < 4) {
@@ -781,7 +781,7 @@ object LuaRegisterObfuscator {
      *
      * @return the number of splits performed.
      */
-    private fun splitRegisters(prototype: LuaPrototype, random: Random): Int {
+    private fun splitRegisters(prototype: LuaPrototype, random: ObfRandom): Int {
         val code = prototype.code
         if (code.size < SPLIT_MIN_INSTRUCTIONS) {
             return 0

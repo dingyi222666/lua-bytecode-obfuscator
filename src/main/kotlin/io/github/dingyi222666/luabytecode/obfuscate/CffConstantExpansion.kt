@@ -1,9 +1,9 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.*
 import io.github.dingyi222666.luabytecode.bytecode.analysis.*
-import java.util.Random
 
 /** A restricted, call-free final constant pass with relocated CFF certificates. */
 internal object CffConstantExpansion {
@@ -23,7 +23,7 @@ internal object CffConstantExpansion {
             .let { if (config.maxConstants > 0) it.take(config.maxConstants) else it }
         if (eligible.isEmpty()) return null
         val constants = prototype.constants.toMutableList()
-        val random = Random(config.seed xor 0x4346464bL)
+        val random = ObfRandom(config.seed xor 0x4346464bL)
         val keys = eligible.associateWith {
             var key = random.nextLong()
             if (key == 0L) key = 1L

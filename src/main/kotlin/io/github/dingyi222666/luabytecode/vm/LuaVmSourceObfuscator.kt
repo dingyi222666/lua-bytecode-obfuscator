@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
+
 /**
  * Small source level protection pass for the generated Lua host.
  *
@@ -9,7 +11,7 @@ package io.github.dingyi222666.luabytecode.vm
  * layer until a target-version bytecode editor is available for the generated host itself.
  */
 internal object LuaVmSourceObfuscator {
-    fun apply(source: String, entryCall: String, random: java.util.Random): String {
+    fun apply(source: String, entryCall: String, random: ObfRandom): String {
         if (entryCall.isEmpty() || !source.contains(entryCall)) return source
         fun ident(): String {
             val alphabet = "abcdefghijklmnopqrstuvwxyz"

@@ -1,7 +1,7 @@
 package io.github.dingyi222666.luabytecode.bytecode.support
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import java.security.MessageDigest
-import java.util.Random
 
 /**
  * Structurally distinct Lua decode-skeleton variants (B6/Round4, VM-2 附录 B).
@@ -148,7 +148,7 @@ object LuaDecodeVariants {
     }
 
     /** Draws a random combination with fresh per-chunk constants. */
-    fun draw(random: Random, guard: Long = 2654435769L): Draw {
+    fun draw(random: ObfRandom, guard: Long = 2654435769L): Draw {
         fun odd(bits: Int): Long = (((random.nextLong() ushr 1) % (1L shl (bits - 1))) shl 1) or 1L
         fun any32(): Long = (random.nextLong() ushr 1) % (1L shl 32)
         return Draw(

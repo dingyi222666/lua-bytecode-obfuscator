@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
@@ -19,7 +20,6 @@ import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTo
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
 import java.util.IdentityHashMap
-import java.util.Random
 import kotlin.math.roundToInt
 
 /**
@@ -113,7 +113,7 @@ object LuaJumpIndirection {
                 skipped += "prototype $index: register limit"; continue
             }
             try {
-                val random = Random(seedFor(config.seed, chunk, prototype))
+                val random = ObfRandom(seedFor(config.seed, chunk, prototype))
                 val scratch = reserveScratch(candidate, scratchCount)
                 val lanes = if (runtime) 2 else 1
                 val total = Math.multiplyExact(sites.size, config.depth * lanes)
@@ -329,7 +329,7 @@ object LuaJunkCode {
             }
             requireNoFallThrough(prototype)
 
-            val random = Random(seedFor(config.seed, chunk, prototype))
+            val random = ObfRandom(seedFor(config.seed, chunk, prototype))
             val sites = selectSites(prototype, allSites, config, random)
             val scratch = reserveScratch(prototype, 8)
 
@@ -432,7 +432,7 @@ object LuaJunkCode {
         prototype: LuaPrototype,
         scratch: Int,
         config: JunkCodeConfig,
-        random: Random,
+        random: ObfRandom,
     ): PredicatePlan {
         return LuaMbaPredicates.build(prototype, scratch, random, config.predicateFamily)
     }
@@ -660,7 +660,7 @@ object LuaBlockCloning {
             if (eligible.isEmpty()) continue
             requireNoFallThrough(prototype)
 
-            val random = Random(seedFor(config.seed, chunk, prototype))
+            val random = ObfRandom(seedFor(config.seed, chunk, prototype))
             val chosen = eligible.shuffled(random).take(config.blocksPerPrototype)
             val scratch = reserveScratch(prototype, 8)
             var cloned = 0
@@ -817,7 +817,7 @@ object LuaBlockCloning {
     private fun corrupt(
         prototype: LuaPrototype,
         instruction: LuaInstruction,
-        random: Random,
+        random: ObfRandom,
     ): LuaInstruction = when (instruction.opcodeName) {
         "LOADK" -> instruction.withBx((instruction.bx + 1) % maxOf(1, prototype.constants.size))
         "LOADI" -> instruction.withSbx(instruction.sbx + 1 + random.nextInt(3))
@@ -839,7 +839,7 @@ private fun selectSites(
     prototype: LuaPrototype,
     allSites: List<Int>,
     config: JunkCodeConfig,
-    random: Random,
+    random: ObfRandom,
 ): List<Int> {
     val backward = allSites.filter { pc ->
         val target = prototype.code[pc].jumpTarget(pc)
@@ -940,7 +940,7 @@ internal fun appendObfuscationCode(prototype: LuaPrototype, instructions: List<L
 internal fun junkInstruction(
     prototype: LuaPrototype,
     scratch: Int,
-    random: Random,
+    random: ObfRandom,
 ): LuaInstruction {
     val version = prototype.version
     val choices = ArrayList<Int>(6)
@@ -1013,7 +1013,7 @@ internal fun seedFor(seed: Long, chunk: LuaChunk, prototype: LuaPrototype): Long
     return hash
 }
 
-private fun shuffledIndices(size: Int, random: Random): IntArray {
+private fun shuffledIndices(size: Int, random: ObfRandom): IntArray {
     val indices = IntArray(size) { it }
     for (i in size - 1 downTo 1) {
         val j = random.nextInt(i + 1)

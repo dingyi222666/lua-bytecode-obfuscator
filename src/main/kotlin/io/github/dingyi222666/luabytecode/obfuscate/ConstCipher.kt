@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
+
 /**
  * The keystream cipher of the numeric constant decoder
  * (`obfuscate/LuaConstantEncryptor.kt`, bundled as
@@ -41,7 +43,7 @@ object ConstCipher {
              * A random full period spec. Every value satisfies Hull–Dobell, so the
              * caller can never draw a degenerate stream (M4: no equivalence classes).
              */
-            fun random(random: java.util.Random): Spec {
+            fun random(random: ObfRandom): Spec {
                 val multiplier = 4L * (1 + random.nextLong(0x1FFFFL)) + 1 // ≡ 1 (mod 4), 17..19 bit
                 val increment = 2L * random.nextLong(0x3FFFFFFFL) + 1 // odd
                 val shift = 8 + random.nextInt(17) // 8..24, which state bits feed the XOR

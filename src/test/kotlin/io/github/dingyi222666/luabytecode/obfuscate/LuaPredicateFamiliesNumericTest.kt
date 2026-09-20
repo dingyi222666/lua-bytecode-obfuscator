@@ -1,9 +1,9 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.*
 import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTo
 import kotlin.test.*
-import java.util.Random
 
 /** Check the emitted runtime template and its branch polarity for the complete truth domain. */
 class LuaPredicateFamiliesNumericTest {
@@ -12,7 +12,7 @@ class LuaPredicateFamiliesNumericTest {
             val p = loadFixture("flow_$suffix.luac").prototypes.first { it.numParams > 0 }.detachedCopy()
             val floor = p.maxStackSize
             p.maxStackSize += 8
-            val plan = LuaJunkCode.buildPredicate(p, floor, JunkCodeConfig(predicateFamily = family), Random(seed))
+            val plan = LuaJunkCode.buildPredicate(p, floor, JunkCodeConfig(predicateFamily = family), ObfRandom(seed))
             assertTrue(plan.setup.any { it.opcodeName == "TEST" && it.a == 0 })
             val code = plan.setup.toMutableList()
             code += LuaJunkCode.compareBranch(p, plan.left, plan.right, plan.alwaysTrue)
@@ -41,7 +41,7 @@ class LuaPredicateFamiliesNumericTest {
             val floor = p.maxStackSize
             p.maxStackSize += 8
             val plan = LuaJunkCode.buildPredicate(p, floor,
-                JunkCodeConfig(predicateFamily = OpaquePredicate.MBA_PRODUCT_PARTITION), Random(seed))
+                JunkCodeConfig(predicateFamily = OpaquePredicate.MBA_PRODUCT_PARTITION), ObfRandom(seed))
             shapes += plan.setup.joinToString(",") { it.opcodeName }
         }
         assertTrue(shapes.size > 16, "only ${shapes.size} operation trees")
@@ -50,7 +50,7 @@ class LuaPredicateFamiliesNumericTest {
     @Test fun `no parameter means refusal instead of a constant seeded predicate`() {
         val p = loadFixture("flow_53.luac").mainPrototype
         assertFailsWith<IllegalArgumentException> {
-            LuaJunkCode.buildPredicate(p, p.maxStackSize, JunkCodeConfig(), Random(7))
+            LuaJunkCode.buildPredicate(p, p.maxStackSize, JunkCodeConfig(), ObfRandom(7))
         }
     }
 }

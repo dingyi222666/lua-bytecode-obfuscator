@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
@@ -21,7 +22,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.LuaPrototypeScope
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 
 import java.util.IdentityHashMap
-import java.util.Random
 
 
 /**
@@ -152,11 +152,11 @@ object LuaStringEncryptor {
             )
         }
 
-        val random = Random(if (config.seed != 0L) config.seed else contentSeed(chunk))
+        val random = ObfRandom(if (config.seed != 0L) config.seed else contentSeed(chunk))
         val version = chunk.version
         // Independent full-period LCG parameters per chunk.
         val cipherSpec = LuaStringCipher.Spec.random(
-            Random((if (config.seed != 0L) config.seed else contentSeed(chunk)) xor 0x5EED1234L),
+            ObfRandom((if (config.seed != 0L) config.seed else contentSeed(chunk)) xor 0x5EED1234L),
         )
 
         // The decoder needs `string` / `table`, so the main closure must capture _ENV.
@@ -262,7 +262,7 @@ object LuaStringEncryptor {
         prototype: LuaPrototype,
         sites: List<Site>,
         decoderSlot: Int,
-        random: Random,
+        random: ObfRandom,
         cipherSpec: LuaStringCipher.Spec,
     ): RewriteOutcome {
         val version = prototype.version

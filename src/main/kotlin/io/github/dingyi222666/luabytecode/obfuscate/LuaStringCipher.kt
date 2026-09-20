@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
+
 
 /**
  * The keystream cipher of the bundled decoder (`tools/decode.lua`):
@@ -24,7 +26,7 @@ object LuaStringCipher {
     /** Different full-period parameters per chunk, not equivalent modular disguises. */
     data class Spec(val multiplier: Long = MULTIPLIER, val increment: Long = INCREMENT) {
         companion object {
-            fun random(random: java.util.Random): Spec =
+            fun random(random: ObfRandom): Spec =
                 Spec(4L * (1 + random.nextLong(0x1FFFFL)) + 1,
                     2L * random.nextLong(0x3FFFFFFFL) + 1)
         }

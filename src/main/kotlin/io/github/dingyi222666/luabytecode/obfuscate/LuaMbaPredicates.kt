@@ -1,11 +1,11 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.*
 import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTo
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
 import io.github.dingyi222666.luabytecode.bytecode.edit.*
-import java.util.Random
 
 
 
@@ -14,7 +14,7 @@ import java.util.Random
  * cost; it is not a claim of resistance to symbolic execution or MBA solvers.
  */
 internal object LuaMbaPredicates {
-    fun build(p: LuaPrototype, base: Int, random: Random, requested: OpaquePredicate): LuaJunkCode.PredicatePlan {
+    fun build(p: LuaPrototype, base: Int, random: ObfRandom, requested: OpaquePredicate): LuaJunkCode.PredicatePlan {
         require(p.numParams > 0 && base + 8 <= p.maxStackSize)
         val v = p.version
         val code = ArrayList<LuaInstruction>()

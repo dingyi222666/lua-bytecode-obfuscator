@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
@@ -23,7 +24,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.ByteArrayOutputStream
 import java.util.IdentityHashMap
-import java.util.Random
 
 /**
  * Tunables of [LuaConstantEncryptor] (Pass K, `LEAK-2`).
@@ -146,10 +146,10 @@ object LuaConstantEncryptor {
             )
         }
 
-        val random = Random(if (config.seed != 0L) config.seed else contentSeed(chunk))
+        val random = ObfRandom(if (config.seed != 0L) config.seed else contentSeed(chunk))
         val version = chunk.version
         val cipherSpec = ConstCipher.Spec.random(
-            Random((if (config.seed != 0L) config.seed else contentSeed(chunk)) xor 0x5EED4E0L),
+            ObfRandom((if (config.seed != 0L) config.seed else contentSeed(chunk)) xor 0x5EED4E0L),
         )
 
         val envIndex = ensureEnvUpvalue(main)
@@ -364,7 +364,7 @@ object LuaConstantEncryptor {
         decoderSlot: Int,
         salt: Int,
         cipherSpec: ConstCipher.Spec,
-        random: Random,
+        random: ObfRandom,
     ): RewriteOutcome {
         val version = prototype.version
         val scratch = prototype.maxStackSize

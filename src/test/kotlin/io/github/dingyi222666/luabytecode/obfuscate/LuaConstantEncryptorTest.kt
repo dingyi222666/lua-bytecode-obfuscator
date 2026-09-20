@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.analysis.constantOperands
@@ -126,7 +127,7 @@ class LuaConstantEncryptorTest {
 
     @Test
     fun `full period parameters satisfy hull dobell and cover the state space`() {
-        val random = java.util.Random(20260917L)
+        val random = ObfRandom(20260917L)
         repeat(200) {
             val spec = ConstCipher.Spec.random(random)
             assertTrue(spec.multiplier % 4 == 1L, "multiplier ${spec.multiplier} not congruent 1 mod 4")
