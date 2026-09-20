@@ -158,7 +158,7 @@ class ObfRandom(seed: Long) : kotlin.random.Random() {
     override fun nextDouble(): Double = ((next(26).toLong() shl 27) + next(27)) * DOUBLE_UNIT
 
     /** Bit-exact clone of `java.util.Random.nextFloat()` (24 random significand bits). */
-    fun nextFloat(): Float = next(24) / (1 shl 24).toFloat()
+    override fun nextFloat(): Float = next(24) / (1 shl 24).toFloat()
 
     companion object {
         private const val MULTIPLIER = 0x5DEECE66DL
