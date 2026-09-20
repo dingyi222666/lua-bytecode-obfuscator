@@ -24,7 +24,7 @@ package io.github.dingyi222666.luabytecode.platform
  *
  * * [nextBits] / [nextInt] / [nextInt(until)] / [nextInt(from, until)]
  * * [nextLong] / [nextLong(until)]
- * * [nextBoolean] / [nextDouble] / [nextFloat]
+ * * [nextBoolean] / [nextDouble] / [nextFloat] / [nextBytes]
  * * [setSeed] and the `ObfRandom(seed)` constructor (same seed unmasking).
  *
  * `nextInt(from, until)` and `nextLong(until)` replicate the
@@ -159,6 +159,31 @@ class ObfRandom(seed: Long) : kotlin.random.Random() {
 
     /** Bit-exact clone of `java.util.Random.nextFloat()` (24 random significand bits). */
     override fun nextFloat(): Float = next(24) / (1 shl 24).toFloat()
+
+    /**
+     * Bit-exact clone of `java.util.Random.nextBytes(byte[])`.
+     *
+     * This override is load-bearing for draw-order compatibility: the common
+     * `kotlin.random.Random.nextBytes` default draws `nextBits(8)` **once per
+     * byte**, while the JDK fills up to four bytes from a single `nextInt()`.
+     * Without it every draw after a `nextBytes` call desyncs from the JVM
+     * reference (Pass K's cipher-blob filler hit exactly that).
+     */
+    override fun nextBytes(array: ByteArray, fromIndex: Int, toIndex: Int): ByteArray {
+        require(fromIndex >= 0 && toIndex <= array.size && fromIndex <= toIndex) {
+            "invalid range $fromIndex until $toIndex for array of size ${array.size}"
+        }
+        var i = fromIndex
+        while (i < toIndex) {
+            var rnd = nextInt()
+            var n = minOf(toIndex - i, Int.SIZE_BITS / Byte.SIZE)
+            while (n-- > 0) {
+                array[i++] = rnd.toByte()
+                rnd = rnd shr 8
+            }
+        }
+        return array
+    }
 
     companion object {
         private const val MULTIPLIER = 0x5DEECE66DL

@@ -189,12 +189,32 @@ class ObfRandomParityTest {
     }
 
     @Test
+    fun `nextBytes parity with java-util-Random`() {
+        // nextBytes is the draw-order trap: the JDK consumes one nextInt() per
+        // up-to-4 bytes, the common stdlib default consumes 8 bits per byte.
+        val sizes = intArrayOf(0, 1, 2, 3, 4, 5, 7, 8, 13, 16, 64, 333)
+        for (seed in seeds) {
+            for (size in sizes) {
+                val jb = ByteArray(size)
+                val kb = ByteArray(size)
+                Random(seed).nextBytes(jb)
+                ObfRandom(seed).nextBytes(kb)
+                assertTrue(
+                    jb.contentEquals(kb),
+                    "nextBytes($size) parity broken for seed $seed",
+                )
+            }
+        }
+    }
+
+    @Test
     fun `same seed reproduces the same sequence (reproducibility contract)`() {
         for (seed in seeds) {
             val a = ObfRandom(seed)
             val b = ObfRandom(seed)
+            val selector = ObfRandom(seed)
             repeat(10_000) {
-                val ops = a.nextInt(3)
+                val ops = selector.nextInt(3)
                 val expected = when (ops) {
                     0 -> b.nextInt()
                     1 -> b.nextInt(1 shl 16)
