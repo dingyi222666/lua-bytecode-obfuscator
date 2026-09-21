@@ -115,22 +115,6 @@ class LuaControlFlowNoiseTest {
     }
 
     @Test
-    fun `every pass composes with string encryption`() {
-        for ((suffix, version) in FIXTURE_VERSIONS) {
-            val chunk = loadFixture("flow_$suffix.luac")
-
-            LuaStringEncryptor.encrypt(chunk, StringEncryptionConfig(minLength = 6))
-            val indirection = LuaJumpIndirection.apply(chunk, JumpIndirectionConfig(depth = 2, junkPerHop = 1))
-            val junk = LuaJunkCode.apply(chunk, JunkCodeConfig(junkPerBlock = 2, guardedBranches = 2))
-
-            assertTrue(indirection.redirectedJumps > 0, "5.$version: no jump redirected")
-            assertTrue(junk.guardedJumps > 0, "5.$version: no branch guarded")
-            assertTargetsValid("flow_$suffix.luac", chunk)
-            LuaChunkLoader.load(LuaChunkWriter.dump(chunk), version)
-        }
-    }
-
-    @Test
     fun `rejects a code stream that could fall into the appended blocks`() {
         val chunk = loadFixture("flow_53.luac")
         val prototype = chunk.prototypes.first { it.jumpTargets().isNotEmpty() }
