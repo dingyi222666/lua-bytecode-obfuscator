@@ -14,7 +14,7 @@ import java.security.SecureRandom
  * fixtures) call [install] once before running the pipeline:
  *
  * * [SecureEntropy] — `SecureRandom` (OS entropy).
- * * [BundledChunkSource] — classpath resources (`/obfuscator/*.luac`).
+ * * [BundledChunkSource] — classpath resources (the `/obfuscator/decode_NN.luac` assets).
  * * [DebugLog] — environment variable switches, stderr sink.
  * * [TraceSink] — the `/tmp/vm-subset-on` sentinel gating appends to
  *   `/tmp/vm-subset.txt` (kept byte-compatible with the historical behaviour).
