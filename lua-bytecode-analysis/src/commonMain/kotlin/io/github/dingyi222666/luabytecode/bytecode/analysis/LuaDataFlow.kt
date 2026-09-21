@@ -51,12 +51,15 @@ class LuaDataFlow(val prototype: LuaPrototype) {
     val liveOut: List<Set<Int>>
 
     init {
-        val starts = sortedSetOf(0)
+        // Replacement of the JVM-only `sortedSetOf(0)` (TreeSet): a plain
+        // mutable set for deduplication, sorted at the read — identical
+        // ascending iteration order for every input.
+        val starts = mutableSetOf(0)
         for (pc in 0 until size) {
             code[pc].jumpTarget(pc)?.let { if (it in 0 until size) starts += it }
             if (code[pc].skipsNextInstruction && pc + 2 <= size) starts += pc + 2
         }
-        blockStarts = starts.toList()
+        blockStarts = starts.sorted()
         blockOf = IntArray(size) { -1 }
         val bounds = ArrayList<IntRange>(blockStarts.size)
         for ((index, from) in blockStarts.withIndex()) {

@@ -21,7 +21,7 @@ kotlin {
 
     // Web target (roadmap step 6): the common code compiles for the browser /
     // node unchanged; tests run on node only (no karma / headless browser).
-    js(IR) {
+    js {
         nodejs()
     }
 

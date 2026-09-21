@@ -227,7 +227,10 @@ fun LuaPrototype.jumpTargets(): Map<Int, Int> = buildMap {
  * the instruction after a conditional skip.
  */
 fun LuaPrototype.basicBlockStarts(): Set<Int> {
-    val starts = sortedSetOf(0)
+    // Replacement of the JVM-only `sortedSetOf(0)` (TreeSet): dedupe into a
+    // plain set, then return the ascending order — identical iteration order
+    // for every input, and common (js/native) compilable.
+    val starts = mutableSetOf(0)
     for (pc in code.indices) {
         code[pc].jumpTarget(pc)?.let { target ->
             if (target in 0..code.size) {
@@ -238,5 +241,5 @@ fun LuaPrototype.basicBlockStarts(): Set<Int> {
             starts += pc + 2
         }
     }
-    return starts
+    return starts.sorted().toSet()
 }

@@ -16,7 +16,7 @@ kotlin {
 
     // Web target (roadmap step 6): the pure model compiles for the browser /
     // node unchanged; the commonTest suite runs on both jvm and node.
-    js(IR) {
+    js {
         nodejs()
     }
 
