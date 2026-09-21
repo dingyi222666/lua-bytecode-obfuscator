@@ -80,7 +80,10 @@ class IdentityCollectionsTest {
         val map: MutableMap<Key, MutableList<Int>> = IdentityMap()
         map.getOrPut(a) { mutableListOf() }.add(7)
         map.getOrPut(a) { mutableListOf() }.add(9)
-        assertEquals(listOf(7, 9), map[a])
+        val stored = map[a]
+        assertEquals(2, stored?.size)
+        assertEquals(7, stored?.get(0))
+        assertEquals(9, stored?.get(1))
         assertEquals(1, map.size)
     }
 
