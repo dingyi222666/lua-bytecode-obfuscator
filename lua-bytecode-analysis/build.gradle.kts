@@ -19,6 +19,12 @@ kotlin {
 
     jvm()
 
+    // Web target (roadmap step 6): the common code compiles for the browser /
+    // node unchanged; tests run on node only (no karma / headless browser).
+    js(IR) {
+        nodejs()
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(kotlin("stdlib"))
