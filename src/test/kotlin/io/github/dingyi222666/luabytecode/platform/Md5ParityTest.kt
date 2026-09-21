@@ -21,7 +21,7 @@ class Md5ParityTest {
         val vectors = listOf(
             "" to "d41d8cd98f00b204e9800998ecf8427e",
             "a" to "0cc175b9c0f1b6a831c399e269772661",
-            "abc" to "900150983249c50d7064616b679aeacb",
+            "abc" to "900150983cd24fb0d6963f7d28e17f72",
             "message digest" to "f96b697d7cb7938d525a2f31aaf161d0",
             "abcdefghijklmnopqrstuvwxyz" to "c3fcd3d76192e4007dfb496cca67e13b",
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" to
