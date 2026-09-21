@@ -25,6 +25,12 @@ kotlin {
         nodejs()
     }
 
+    // Native target (roadmap step 6b): the common code compiles for the
+    // linux X64 toolchain unchanged; commonTest suites run on native too.
+    // The platform seam implementations for native live in the native host
+    // module (:lua-cli-native), mirroring the JsPlatform precedent.
+    linuxX64()
+
     sourceSets {
         commonMain.dependencies {
             // kotlin-stdlib is the only allowed dependency: no java.*, no
