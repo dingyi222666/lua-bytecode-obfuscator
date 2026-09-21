@@ -41,6 +41,11 @@ dependencies {
     // generated Lua interpreter (roadmap step 5). Input staging is injected via
     // LuaVmPipeline below; no other feature depends on it.
     implementation(project(":lua-vm"))
+    // The sunk pipeline assembly (roadmap step 6b): the pass orchestrator
+    // (LuaObfuscator), key renaming, host seed primitives and the LuaVmPipeline
+    // composition root. The root module keeps only the JVM frontends (CLI,
+    // decompiler) plus the platform assembler on top of it.
+    implementation(project(":lua-obfuscation-pipeline"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))

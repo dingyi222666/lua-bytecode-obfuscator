@@ -16,8 +16,10 @@ import io.github.dingyi222666.luabytecode.platform.ObfRandom
  * as stage functions instead of direct calls: this object is the only place that
  * binds the real passes to the VM entry points.
  *
- * Keep this file in the root/orchestrator module: it is the composition root,
- * exactly like `LuaObfuscator` itself.
+ * Keep this file next to `LuaObfuscator` in :lua-obfuscation-pipeline (the
+ * sunk orchestrator module, roadmap step 6b): it is the composition root, and
+ * every host (JVM library entry, web runtime, native CLI) binds the stages
+ * through it.
  */
 object LuaVmPipeline {
 

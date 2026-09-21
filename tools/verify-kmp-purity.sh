@@ -46,6 +46,7 @@ SCOPE=(
   lua-obfuscation-cff/src/commonMain
   lua-obfuscation-register/src/commonMain
   lua-vm/src/commonMain
+  lua-obfuscation-pipeline/src/commonMain
 )
 
 strip_comments() {

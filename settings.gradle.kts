@@ -31,6 +31,11 @@ include(":lua-obfuscation-jumps")
 include(":lua-obfuscation-cff")
 include(":lua-obfuscation-register")
 include(":lua-vm")
+// Pipeline assembly (roadmap step 6b): the pass orchestrator (LuaObfuscator),
+// the key renaming pass, the host seed primitives and the LuaVmPipeline
+// composition root, shared by the JVM library entry, the web runtime and the
+// native CLI.
+include(":lua-obfuscation-pipeline")
 // Web runtime (roadmap step 6): js-only assembly of the common pipeline with
 // the platform seam implementations, the bundled decoder assets as committed
 // base64 constants and the minimal static web UI.
