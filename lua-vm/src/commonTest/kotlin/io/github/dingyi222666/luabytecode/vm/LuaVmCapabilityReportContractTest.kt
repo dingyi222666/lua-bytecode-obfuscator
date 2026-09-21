@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
