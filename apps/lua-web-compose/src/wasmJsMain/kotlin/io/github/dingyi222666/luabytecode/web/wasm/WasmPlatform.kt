@@ -52,16 +52,20 @@ private fun webCryptoRandomLong(): Long {
     return (high shl 32) or low
 }
 
+// The import-object emitter of this KGP concatenates the js() body verbatim
+// into arrow-function EXPRESSION position (`'fqn' : (args) => <body>`), so a
+// multi-statement body would be syntactically invalid. Every fragment here is
+// therefore a single IIFE expression whose value is the function result.
 private fun randomHex16(): String = js(
-    """
-    const bytes = new Uint8Array(8);
-    globalThis.crypto.getRandomValues(bytes);
-    let hex = "";
-    for (let i = 0; i < bytes.length; i++) {
-        hex += bytes[i].toString(16).padStart(2, "0");
-    }
-    return hex;
-    """,
+    """(() => {
+        const bytes = new Uint8Array(8);
+        globalThis.crypto.getRandomValues(bytes);
+        let hex = "";
+        for (let i = 0; i < bytes.length; i++) {
+            hex += bytes[i].toString(16).padStart(2, "0");
+        }
+        return hex;
+    })()""",
 )
 
-private fun consoleError(message: String): Unit = js("console.error(message);")
+private fun consoleError(message: String): Unit = js("console.error(message)")

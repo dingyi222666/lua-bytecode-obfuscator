@@ -34,54 +34,59 @@ internal fun downloadLuac(fileName: String, base64: String) {
     downloadImpl(fileName, base64)
 }
 
+// The import-object emitter of this KGP concatenates the js() body verbatim
+// into arrow-function EXPRESSION position (`'fqn' : (args) => <body>`), so
+// every fragment here is a single IIFE expression (statements live inside the
+// inner arrow; no trailing semicolon may terminate the outer expression).
+
 private fun pickFileImpl(onResult: (fileName: String?, base64: String?) -> Unit): Unit = js(
-    """
-    const input = document.createElement("input");
-    input.type = "file";
-    input.style.display = "none";
-    document.body.appendChild(input);
-    let finished = false;
-    const finish = (name, data) => {
-        if (finished) { return; }
-        finished = true;
-        input.remove();
-        onResult(name, data);
-    };
-    input.addEventListener("change", () => {
-        const file = input.files && input.files[0];
-        if (!file) { finish(null, null); return; }
-        const reader = new FileReader();
-        reader.onload = () => {
-            const bytes = new Uint8Array(reader.result);
-            let binary = "";
-            const window_ = 0x8000;
-            for (let i = 0; i < bytes.length; i += window_) {
-                binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + window_, bytes.length)));
-            }
-            finish(file.name, btoa(binary));
+    """(() => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.style.display = "none";
+        document.body.appendChild(input);
+        let finished = false;
+        const finish = (name, data) => {
+            if (finished) { return; }
+            finished = true;
+            input.remove();
+            onResult(name, data);
         };
-        reader.onerror = () => finish(file.name, null);
-        reader.readAsArrayBuffer(file);
-    });
-    input.addEventListener("cancel", () => finish(null, null));
-    input.click();
-    """,
+        input.addEventListener("change", () => {
+            const file = input.files && input.files[0];
+            if (!file) { finish(null, null); return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const bytes = new Uint8Array(reader.result);
+                let binary = "";
+                const window_ = 0x8000;
+                for (let i = 0; i < bytes.length; i += window_) {
+                    binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + window_, bytes.length)));
+                }
+                finish(file.name, btoa(binary));
+            };
+            reader.onerror = () => finish(file.name, null);
+            reader.readAsArrayBuffer(file);
+        });
+        input.addEventListener("cancel", () => finish(null, null));
+        input.click();
+    })()""",
 )
 
 private fun downloadImpl(fileName: String, base64: String): Unit = js(
-    """
-    const padded = base64 + "====".slice((4 - (base64.length % 4)) % 4);
-    const binary = atob(padded);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
-    const blob = new Blob([bytes], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-    """,
+    """(() => {
+        const padded = base64 + "====".slice((4 - (base64.length % 4)) % 4);
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) { bytes[i] = binary.charCodeAt(i); }
+        const blob = new Blob([bytes], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+    })()""",
 )
