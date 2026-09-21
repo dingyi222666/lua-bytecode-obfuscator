@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
@@ -136,7 +137,7 @@ object LuaControlFlowFlattening {
         if (!config.enabled) {
             return ControlFlowFlatteningReport(0, 0, 0, 0, 0)
         }
-        val debug = System.getenv("CFF_DEBUG") != null
+        val debug = Platform.debug.enabled("CFF_DEBUG")
         var flattened = 0
         var blocks = 0
         var guards = 0
@@ -264,7 +265,7 @@ object LuaControlFlowFlattening {
         prototype.maxStackSize = maxStackSize
         refusals[code] = (refusals[code] ?: 0) + 1
         if (debug) {
-            System.err.println("[cff] skip ${prototype.source}:${prototype.lineDefined} $code: $reason")
+            Platform.debug.log("[cff] skip ${prototype.source}:${prototype.lineDefined} $code: $reason")
         }
         return null
     }
@@ -649,7 +650,7 @@ object LuaControlFlowFlattening {
         prototype.edit { replaceCode(built, emittedLines) }
         prototype.localVariables.clear()
         if (debug) {
-            System.err.println("[cff] ${prototype.source}:${prototype.lineDefined} blocks=${units.size} mask=$useMask")
+            Platform.debug.log("[cff] ${prototype.source}:${prototype.lineDefined} blocks=${units.size} mask=$useMask")
         }
         val actual = packets.features.toMutableSet()
         if (guards > 0) actual += "predicates.numeric"

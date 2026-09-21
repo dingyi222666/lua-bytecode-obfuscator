@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
@@ -111,7 +112,7 @@ object LuaVmObfuscation {
             ?: obfuscationReport?.controlFlowFlattening
         if (options.requireSourceCff && options.sourceCff == null && obfuscationReport?.controlFlowFlattening == null) return null
         if (options.requireSourceCff && (cffReport == null || cffReport.flattenedPrototypes == 0)) {
-            if (options.debug) System.err.println("[vm] source CFF did not apply to any prototype")
+            if (options.debug) Platform.debug.log("[vm] source CFF did not apply to any prototype")
             return null
         }
         val prototype = working.mainPrototype
@@ -298,7 +299,7 @@ object LuaVmObfuscation {
         out.append(entryCall)
         out.append(tail)
         if (options.debug) {
-            System.err.println(
+            Platform.debug.log(
                 "[vm] module: ${program.words.size} words, ${program.superInstructions} super instructions, " +
                     "cipher=$cipher, seedLower=$seedLower, upperSeed=$upperSeed, rotation=$rotation",
             )

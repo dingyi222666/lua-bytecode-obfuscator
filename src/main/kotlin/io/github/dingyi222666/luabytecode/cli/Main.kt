@@ -19,6 +19,7 @@ import io.github.dingyi222666.luabytecode.obfuscate.OpaquePredicate
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
 import io.github.dingyi222666.luabytecode.obfuscate.StringEncryptionConfig
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
+import io.github.dingyi222666.luabytecode.platform.Platform
 import java.io.File
 
 private const val USAGE = """
@@ -61,6 +62,8 @@ Edit:
   -h, --help              Show this help
 """
 fun main(args: Array<String>) {
+    // Entry-point wiring: SecureRandom entropy, classpath assets, env/stderr debug.
+    io.github.dingyi222666.luabytecode.platform.jvm.JvmPlatform.install()
     if (args.isEmpty() || args.contains("-h") || args.contains("--help")) {
         println(USAGE.trimIndent())
         return
@@ -238,7 +241,7 @@ fun main(args: Array<String>) {
             // unseeded source). Same policy as the obfuscation pipeline:
             // default per-run SecureRandom, `--seed` pins, `--seed 0` legacy.
             val vmRandom = when (masterSeed) {
-                null -> ObfRandom(java.security.SecureRandom().nextLong())
+                null -> ObfRandom(Platform.entropy.nextLong())
                 else -> ObfRandom(masterSeed)
             }
             val module = io.github.dingyi222666.luabytecode.vm.LuaVmObfuscation.emitModule(

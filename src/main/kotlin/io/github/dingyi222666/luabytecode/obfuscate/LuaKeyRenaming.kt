@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
@@ -83,8 +84,8 @@ object LuaKeyRenaming {
         chunk: LuaChunk,
         config: KeyRenamingConfig = KeyRenamingConfig(),
     ): KeyRenamingResult {
-        val dbg = System.getenv("KEY_DEBUG") != null
-        if (dbg) System.err.println("[KEY] apply called on ${chunk.prototypes.size} prototypes")
+        val dbg = Platform.debug.enabled("KEY_DEBUG")
+        if (dbg) Platform.debug.log("[KEY] apply called on ${chunk.prototypes.size} prototypes")
         val random = ObfRandom(if (config.seed != 0L) config.seed else contentSeed(chunk))
         var renamed = 0
         var sites = 0
@@ -135,14 +136,14 @@ object LuaKeyRenaming {
             if (refsAll.any { !it.keySide }) {
                 if (dbg) {
                     val nonKey = refsAll.filter { !it.keySide }.take(3)
-                    System.err.println("[KEY] skip non-key-side: '$text' at " +
+                    Platform.debug.log("[KEY] skip non-key-side: '$text' at " +
                         nonKey.joinToString { prototypeNameOf(it) })
                 }
                 skipped++
                 continue
             }
             if (hasGlobalWriteShape(chunk.mainPrototype, refsAll)) {
-                if (dbg) System.err.println("[KEY] skip global-write: '$text'")
+                if (dbg) Platform.debug.log("[KEY] skip global-write: '$text'")
                 skipped++
                 continue
             }

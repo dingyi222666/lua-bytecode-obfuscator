@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.platform.hexPadded
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
@@ -233,7 +234,7 @@ object LuaRegisterObfuscator {
      * a structural shape the permutation cannot serve).
      */
     private fun permuteRegisters(prototype: LuaPrototype, random: ObfRandom): Boolean {
-        val debug = System.getenv("B4_DEBUG") != null
+        val debug = Platform.debug.enabled("B4_DEBUG")
         val code = prototype.code
         if (code.isEmpty()) {
             return false
@@ -284,7 +285,7 @@ object LuaRegisterObfuscator {
         // Nothing moved: the prototype's shape pins everything to identity.
         if (placed == 0 || target.keys.all { target[it] == it }) {
             if (debug) {
-                System.err.println(
+                Platform.debug.log(
                     "[b4-perm] proto@${prototype.lineDefined} SKIP identity: placed=$placed fallbackOnly=$fallbackOnly " +
                         "maxRegs=${prototype.maxStackSize} numParams=${prototype.numParams} movable=${movable.size} " +
                         "conflictPairs=${conflicts.values.sumOf { it.size } / 2}",
@@ -301,7 +302,7 @@ object LuaRegisterObfuscator {
         if (!translationEquivalent(before, prototype, flow, target)) {
             restore(before, prototype)
             if (debug) {
-                System.err.println(
+                Platform.debug.log(
                     "[b4-perm] proto@${prototype.lineDefined} ROLLBACK translation mismatch: " +
                         "maxRegs=${prototype.maxStackSize} numParams=${prototype.numParams}",
                 )
@@ -509,10 +510,10 @@ object LuaRegisterObfuscator {
             // whole tail must translate as a set, which a bijection over the same
             // range guarantees — checked here explicitly.
             if (translatedUses != useDefAfter.uses || translatedDefs != useDefAfter.defs) {
-                if (System.getenv("B4_DEBUG") != null) {
+                if (Platform.debug.enabled("B4_DEBUG")) {
                     val beforeInst = before[pc]
                     val afterInst = prototype.code[pc]
-                    System.err.println(
+                    Platform.debug.log(
                         "[b4-check] pc=$pc ${beforeInst.opcodeName} a=${beforeInst.a} b=${beforeInst.b} c=${beforeInst.c} " +
                             "k=${beforeInst.k} -> a=${afterInst.a} b=${afterInst.b} c=${afterInst.c} " +
                             "| uses ${useDefBefore.uses}->${useDefAfter.uses} (translated=$translatedUses) " +
@@ -581,7 +582,7 @@ object LuaRegisterObfuscator {
      */
     private fun mergeRegisters(prototype: LuaPrototype, random: ObfRandom): Int {
         val code = prototype.code
-        val debug = System.getenv("B4_DEBUG") != null
+        val debug = Platform.debug.enabled("B4_DEBUG")
         if (code.size < 4) {
             return 0
         }
@@ -640,7 +641,7 @@ object LuaRegisterObfuscator {
             it !in pinned && it !in frameTop && it !in inImplicitGroup && it !in captured
         }
         if (debug) {
-            System.err.println(
+            Platform.debug.log(
                 "[b4-merge] proto@${prototype.lineDefined} hosts=${hosts.size}/${prototype.maxStackSize} " +
                     "(pinned=${pinned.count()}, frameTop=${frameTop.size}, group=${inImplicitGroup.size}, captured=${captured.size})",
             )
@@ -684,7 +685,7 @@ object LuaRegisterObfuscator {
             if (merged >= MERGE_BUDGET_PER_PROTOTYPE) break
         }
         if (debug) {
-            System.err.println(
+            Platform.debug.log(
                 "[b4-merge] proto@${prototype.lineDefined} merged=$merged rejected(conflict=$rejectedConflict, coOccurs=$rejectedCoOccur) " +
                     "noConflictGuests=$noConflictGuests maxRegs=${prototype.maxStackSize} numParams=${prototype.numParams}",
             )
@@ -860,7 +861,7 @@ object LuaRegisterObfuscator {
 
         var performed = 0
         val budget = SPLIT_BUDGET_PER_PROTOTYPE
-        val debug = System.getenv("B4_DEBUG") != null
+        val debug = Platform.debug.enabled("B4_DEBUG")
         // REG-INERT-1 follow-up (fourth semantic kill, found by bank54 "silent
         // empty output"): multiple splits inside one call share the `flow` and
         // the candidate list captured before the first insert. After a split
@@ -888,7 +889,7 @@ object LuaRegisterObfuscator {
                 }
             }
             if (targetAtInsert) {
-                if (debug) System.err.println("[b4-split] proto@${prototype.lineDefined} pc=$defPc r=$register: insert point is a jump target")
+                if (debug) Platform.debug.log("[b4-split] proto@${prototype.lineDefined} pc=$defPc r=$register: insert point is a jump target")
                 continue
             }
             // REG-INERT-1 root cause C fix: the old global-floor check rejected
@@ -905,7 +906,7 @@ object LuaRegisterObfuscator {
             // *sibling* path is outside every window by construction.
             val redirect = dominatorUsesAfter(flow, defPc, register)
             if (redirect.isEmpty()) {
-                if (debug) System.err.println("[b4-split] proto@${prototype.lineDefined} pc=$defPc r=$register: no dominated uses (def feeds a terminator or every path redefines)")
+                if (debug) Platform.debug.log("[b4-split] proto@${prototype.lineDefined} pc=$defPc r=$register: no dominated uses (def feeds a terminator or every path redefines)")
                 continue
             }
             // REG-INERT-1 follow-up (conservative window after three semantic
@@ -924,7 +925,7 @@ object LuaRegisterObfuscator {
                     instruction.opcodeName !in LuaRegisterAnalysis.DYNAMIC_RANGE_OPCODES
             }
             if (!windowClean) {
-                if (debug) System.err.println("[b4-split] proto@${prototype.lineDefined} pc=$defPc r=$register: window [$insertAt,${redirect.maxOrNull()}] not a straight-line block")
+                if (debug) Platform.debug.log("[b4-split] proto@${prototype.lineDefined} pc=$defPc r=$register: window [$insertAt,${redirect.maxOrNull()}] not a straight-line block")
                 continue
             }
             val newRegister = prototype.maxStackSize + performed
@@ -981,7 +982,7 @@ object LuaRegisterObfuscator {
             }
             performed++
             if (debug) {
-                System.err.println(
+                Platform.debug.log(
                     "[b4-split] proto@${prototype.lineDefined} SPLIT def pc=$defPc r=$register -> " +
                         "r$newRegister, redirected uses at $redirect",
                 )

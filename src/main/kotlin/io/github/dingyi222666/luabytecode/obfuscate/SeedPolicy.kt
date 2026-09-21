@@ -1,7 +1,7 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
-import java.security.SecureRandom
 
 /**
  * PRED-2/LEAK-5 (plan A, master-approved): the obfuscated output must not be a
@@ -41,7 +41,7 @@ object SeedPolicy {
      * anything else is used verbatim.
      */
     fun masterSeed(explicit: Long?, chunk: LuaChunk): Long = when (explicit) {
-        null -> SecureRandom().nextLong()
+        null -> Platform.entropy.nextLong()
         0L -> legacyContentSeed(chunk)
         else -> explicit
     }

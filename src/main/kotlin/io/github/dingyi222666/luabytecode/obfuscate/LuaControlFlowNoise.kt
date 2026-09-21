@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
@@ -386,8 +387,8 @@ object LuaJunkCode {
                 dead += jumpTo(prototype.version, deadStart + dead.size, originalTarget)
                 deadBlocksAppended += dead
 
-                if (System.getenv("XPASS_DEBUG") != null) {
-                    System.err.println(
+                if (Platform.debug.enabled("XPASS_DEBUG")) {
+                    Platform.debug.log(
                         "[xpass] junk ${prototype.source}:${prototype.lineDefined} site=$site " +
                             "${prototype.code[site].opcodeName} -> guard@$guardStart (dead@$deadStart)",
                     )
@@ -555,8 +556,8 @@ internal fun resolveEnvUpvalues(chunk: LuaChunk): IdentityMap<LuaPrototype, Int>
                 .indexOfFirst { !it.inStack && it.index == parentEnv }
                 .takeIf { it >= 0 }
         }
-        if (System.getenv("JUNK_DEBUG") != null) {
-            System.err.println(
+        if (Platform.debug.enabled("JUNK_DEBUG")) {
+            Platform.debug.log(
                 "[env] proto=${prototype.source}:${prototype.lineDefined} " +
                     "upvalues=${prototype.upvalues.map { "inStack=${it.inStack},index=${it.index}" }} " +
                     "names=${prototype.upvalueNames.map { it?.utf8 }} named=$named parentEnv=$parentEnv -> env=$env",
@@ -672,12 +673,12 @@ object LuaBlockCloning {
 
             for (block in chosen) {
                 val entrySites = incomingSites(prototype, block.first)
-                if (System.getenv("XPASS_DEBUG") != null) {
+                if (Platform.debug.enabled("XPASS_DEBUG")) {
                     val siteInfo = entrySites.joinToString(",") { site ->
                         val t = prototype.code[site].jumpTarget(site)
                         "$site->${prototype.code[site].opcodeName}@${t}"
                     }
-                    System.err.println(
+                    Platform.debug.log(
                         "[xpass] clone-pick ${prototype.source}:${prototype.lineDefined} " +
                             "block=$block entrySites=[$siteInfo] entrySize=$entrySize codeSize=${prototype.code.size}",
                     )
@@ -771,8 +772,8 @@ object LuaBlockCloning {
                 for (pc in prototype.code.indices) {
                     if (pc in goodStart until guardStart) continue
                     if (prototype.code[pc].jumpTarget(pc) == block.first) {
-                        if (System.getenv("XPASS_DEBUG") != null) {
-                            System.err.println(
+                        if (Platform.debug.enabled("XPASS_DEBUG")) {
+                            Platform.debug.log(
                                 "[xpass] clone ${prototype.source}:${prototype.lineDefined} site=$pc " +
                                     "${prototype.code[pc].opcodeName} -> guard@$guardStart " +
                                     "(block=$block good@$goodStart trap@$trapStart entrySize=$entrySize)",

@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.IdentitySet
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
@@ -173,8 +174,8 @@ object LuaConstantEncryptor {
         var rewritten = 0
         var skipped = 0
         for ((prototype, prototypeSites) in sites) {
-            if (System.getenv("K_DEBUG") != null) {
-                System.err.println("[K] rewrite proto=${prototype.source?.utf8}: sites=${prototypeSites.size} " +
+            if (Platform.debug.enabled("K_DEBUG")) {
+                Platform.debug.log("[K] rewrite proto=${prototype.source?.utf8}: sites=${prototypeSites.size} " +
                     "stack=${prototype.maxStackSize}")
             }
             val slot = slotOf[prototype] ?: continue
@@ -205,10 +206,10 @@ object LuaConstantEncryptor {
         }
 
         installDecoderPrologue(main, slotOf.getValue(main), decoderIndex)
-        if (System.getenv("K_DEBUG") != null) {
+        if (Platform.debug.enabled("K_DEBUG")) {
             val mainRefs = referencedIndices(main)
             val sampleRefs = (165..172).map { it to (it in mainRefs) }
-            System.err.println("[K] scrubbed=$scrubbed promisedProtos=${promisedSlots.size} " +
+            Platform.debug.log("[K] scrubbed=$scrubbed promisedProtos=${promisedSlots.size} " +
                 "mainPromised=${promisedSlots[main]?.size ?: 0} refs165-172=$sampleRefs")
         }
 
@@ -293,12 +294,12 @@ object LuaConstantEncryptor {
             // site is the LOADKX instruction, the constant index lives in the
             // EXTRAARG that follows it.
             val loadkxSites = HashMap<Int, MutableList<Site>>()
-            if (System.getenv("K_TRACE_CONST")?.toIntOrNull() == 166 &&
+            if (Platform.debug.value("K_TRACE_CONST")?.toIntOrNull() == 166 &&
                 prototype === chunk.mainPrototype) {
                 val extraPcs = prototype.code.withIndex().filter { it.value.opcodeName == "EXTRAARG" && it.value.ax == 166 }.map { it.index }
                 val loadkxPcs = prototype.code.withIndex().filter { it.value.opcodeName == "LOADKX" }.map { it.index }
                 val loadkPcs = prototype.code.withIndex().filter { it.value.opcodeName == "LOADK" && it.value.bx == 166 }.map { it.index }
-                System.err.println("[KDBG166] extraPcs=$extraPcs loadkxPcs=$loadkxPcs loadkPcs=$loadkPcs")
+                Platform.debug.log("[KDBG166] extraPcs=$extraPcs loadkxPcs=$loadkxPcs loadkPcs=$loadkPcs")
             }
             for (pc in prototype.code.indices) {
                 if (prototype.code[pc].opcodeName != "LOADKX") continue
@@ -315,10 +316,10 @@ object LuaConstantEncryptor {
                 .map { (k, v) -> k to v.flatten() }) {
                 if (budget <= 0) break
                 if (constantIndex in shared) continue
-                val traceThis = System.getenv("K_TRACE_CONST")?.toIntOrNull() == constantIndex &&
-                    System.getenv("K_TRACE_PROTO")?.toIntOrNull() == chunk.prototypes.indexOf(prototype)
+                val traceThis = Platform.debug.value("K_TRACE_CONST")?.toIntOrNull() == constantIndex &&
+                    Platform.debug.value("K_TRACE_PROTO")?.toIntOrNull() == chunk.prototypes.indexOf(prototype)
                 if (traceThis) {
-                    System.err.println("[KTRACE] const=$constantIndex pcs=$pcs shared=${constantIndex in shared}")
+                    Platform.debug.log("[KTRACE] const=$constantIndex pcs=$pcs shared=${constantIndex in shared}")
                 }
                 // Match the complete decoder call window, not any nearby GETUPVAL.
                 // A normal closure can read an upvalue immediately before a numeric load.
@@ -334,7 +335,7 @@ object LuaConstantEncryptor {
                     }
                 }
                 if (traceThis) {
-                    System.err.println("[KTRACE] const=$constantIndex inForeignStub=$inForeignStub " +
+                    Platform.debug.log("[KTRACE] const=$constantIndex inForeignStub=$inForeignStub " +
                         "pcs=$pcs sitesAdded=${sites.size}")
                 }
                 if (inForeignStub) continue
@@ -404,11 +405,11 @@ object LuaConstantEncryptor {
         for ((position, constantIndex) in order.withIndex()) {
             val entry = plainEntries.copyOfRange(position * CIPHER_ENTRY_SIZE, (position + 1) * CIPHER_ENTRY_SIZE)
             val record = ConstCipher.apply(entry, ConstCipher.ofIndex(salt, position), cipherSpec)
-            if (System.getenv("K_DEBUG") != null) {
-                System.err.println("[K] blobSlots=$blobSlots order=$order")
+            if (Platform.debug.enabled("K_DEBUG")) {
+                Platform.debug.log("[K] blobSlots=$blobSlots order=$order")
             }
-            if (System.getenv("K_DEBUG") != null) {
-                System.err.println(
+            if (Platform.debug.enabled("K_DEBUG")) {
+                Platform.debug.log(
                     "[K] proto=${prototype.source?.utf8}:$prototype.lineDefined pos=$position const=$constantIndex " +
                         "plain=${entry.toList()} cipher=${record.toList()} seed=${ConstCipher.ofIndex(salt, position)} " +
                         "spec=(${'$'}{cipherSpec.multiplier},${'$'}{cipherSpec.increment},${'$'}{cipherSpec.shift}) salt=$salt",
@@ -593,7 +594,7 @@ object LuaConstantEncryptor {
         cipherSpec: ConstCipher.Spec,
     ): LuaPrototype {
         val resource = "/obfuscator/decode_num_" + hex2(version.versionByte) + ".luac"
-        val bytes = LuaConstantEncryptor::class.java.getResourceAsStream(resource)?.use { it.readBytes() }
+        val bytes = Platform.bundledChunks.load(resource)
             ?: throw LuaBytecodeFormatException("missing bundled decoder resource $resource")
         val chunk = LuaChunkLoader.load(bytes, version)
         // The template is `return function(...) ... end`, so the decoder lives as

@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
@@ -86,11 +87,9 @@ object LuaVmTranslator {
         "LE" to LuaVmProgram.Op.LE,
     )
 
-    /** Writes a refusal reason to `/tmp/vm-subset.txt` when the file switch is on. */
+    /** Writes a refusal reason to the developer trace when the file switch is on. */
     private fun reportRefusal(reason: String) {
-        if (java.io.File("/tmp/vm-subset-on").exists()) {
-            java.io.File("/tmp/vm-subset.txt").appendText("refused: $reason\n")
-        }
+        Platform.traceSink.append("refused: $reason")
     }
 
     private class EncodingLimit(message: String) : RuntimeException(message)
@@ -138,11 +137,7 @@ object LuaVmTranslator {
         // every refusal explains itself (the `else ->` branch already reports the opcode):
         // a black box refusal costs a round trip, a named one costs a minute
         fun refuse(reason: String): VmProgram? {
-            if (java.io.File("/tmp/vm-subset-on").exists()) {
-                java.io.File("/tmp/vm-subset.txt").appendText(
-                    "refused: " + reason + " src=" + prototype.source + ":" + prototype.lineDefined + "\n",
-                )
-            }
+            Platform.traceSink.append("refused: " + reason + " src=" + prototype.source + ":" + prototype.lineDefined)
             return null
         }
 
@@ -831,11 +826,7 @@ object LuaVmTranslator {
                 }
                 else -> {
                     // file switch: Gradle's test JVM does not inherit our env vars
-                    if (java.io.File("/tmp/vm-subset-on").exists()) {
-                        java.io.File("/tmp/vm-subset.txt").appendText(
-                            "unsupported op=" + op + " src=" + prototype.source + ":" + prototype.lineDefined + "\n",
-                        )
-                    }
+                    Platform.traceSink.append("unsupported op=" + op + " src=" + prototype.source + ":" + prototype.lineDefined)
                     return null
                 }
             }

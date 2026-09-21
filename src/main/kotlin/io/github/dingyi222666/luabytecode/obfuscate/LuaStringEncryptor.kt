@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.IdentitySet
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
@@ -412,7 +413,7 @@ object LuaStringEncryptor {
         cipherSpec: LuaStringCipher.Spec,
     ): LuaPrototype {
         val resource = "/obfuscator/decode_" + hex2(version.versionByte) + ".luac"
-        val bytes = LuaStringEncryptor::class.java.getResourceAsStream(resource)?.use { it.readBytes() }
+        val bytes = Platform.bundledChunks.load(resource)
             ?: throw LuaBytecodeFormatException("missing bundled decoder resource $resource")
         val chunk = LuaChunkLoader.load(bytes, version)
         val decoder = chunk.mainPrototype.nestedPrototypes.singleOrNull()
