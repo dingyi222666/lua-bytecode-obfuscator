@@ -18,6 +18,13 @@ kotlin {
 
     jvm()
 
+    // Web target (roadmap step 6): the common seams and helpers compile for
+    // the browser / node unchanged. Tests run on node only — no karma and no
+    // headless browser inside CI (`build` runs jsNodeTest via `check`).
+    js(IR) {
+        nodejs()
+    }
+
     sourceSets {
         commonMain.dependencies {
             // kotlin-stdlib is the only allowed dependency: no java.*, no

@@ -14,6 +14,12 @@ kotlin {
 
     jvm()
 
+    // Web target (roadmap step 6): the pure model compiles for the browser /
+    // node unchanged; the commonTest suite runs on both jvm and node.
+    js(IR) {
+        nodejs()
+    }
+
     sourceSets {
         commonMain.dependencies {
             // The model must stay dependency free: kotlin-stdlib is the only
