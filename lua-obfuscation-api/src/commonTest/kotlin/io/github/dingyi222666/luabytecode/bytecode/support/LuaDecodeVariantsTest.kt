@@ -108,7 +108,7 @@ class LuaDecodeVariantsTest {
     // ------------------------------------------------------ structural identity
 
     @Test
-    fun `structural md5 classes - 6 seed inits, 5 step forms, 4 byte extracts`() {
+    fun `structural md5 classes - 6 seed inits - 5 step forms - 4 byte extracts`() {
         fun countShapes(texts: List<String>): Int = texts.map { LuaDecodeVariants.structuralMd5(it) }.toSet().size
 
         val seedTexts = LuaDecodeVariants.SeedInit.entries.map { init ->
