@@ -28,7 +28,9 @@ data class StringEncryptionConfig(
      * content, so protecting the same chunk twice yields the same output.
      */
     val seed: Long = 0,
-)
+) : SeededPassConfig<StringEncryptionConfig> {
+    override fun withSeed(seed: Long): StringEncryptionConfig = copy(seed = seed)
+}
 
 /**
  * Tunables of [LuaConstantEncryptor] (Pass K, `LEAK-2`).
@@ -42,7 +44,9 @@ data class ConstantEncryptionConfig(
 
     /** `0` derives a deterministic seed from the chunk content. */
     val seed: Long = 0,
-)
+) : SeededPassConfig<ConstantEncryptionConfig> {
+    override fun withSeed(seed: Long): ConstantEncryptionConfig = copy(seed = seed)
+}
 
 /**
  * Tunables of [LuaKeyRenaming] (LEAK-1 key half).
@@ -53,7 +57,9 @@ data class KeyRenamingConfig(
 
     /** `0` derives a deterministic seed from the chunk content. */
     val seed: Long = 0,
-)
+) : SeededPassConfig<KeyRenamingConfig> {
+    override fun withSeed(seed: Long): KeyRenamingConfig = copy(seed = seed)
+}
 
 /** Configuration of [LuaJumpIndirection]. */
 data class JumpIndirectionConfig(
@@ -74,12 +80,14 @@ data class JumpIndirectionConfig(
 
     /** `0` derives a deterministic seed from the chunk. */
     val seed: Long = 0,
-) {
+) : SeededPassConfig<JumpIndirectionConfig> {
     init {
         require(decoyBlocks in 0..1024) { "decoyBlocks must be in 0..1024" }
         require(depth in 1..64) { "jump indirection depth must be in 1..64" }
         require(junkPerHop in 0..64) { "junkPerHop must be in 0..64" }
     }
+
+    override fun withSeed(seed: Long): JumpIndirectionConfig = copy(seed = seed)
 }
 
 /** Configuration of [LuaJunkCode] (花指令 / dead branch injection). */
@@ -125,7 +133,7 @@ data class JunkCodeConfig(
 
     /** `0` derives a deterministic seed from the chunk. */
     val seed: Long = 0,
-) {
+) : SeededPassConfig<JunkCodeConfig> {
     init {
         require(junkPerBlock in 0..64)
         require(guardedBranches >= 0)
@@ -134,6 +142,8 @@ data class JunkCodeConfig(
         require(unreachableBlocks >= 0)
         require(deadCycleLength >= 1)
     }
+
+    override fun withSeed(seed: Long): JunkCodeConfig = copy(seed = seed)
 }
 
 /** Runtime input plus randomly composed integer/bitwise expression families. */
@@ -191,11 +201,13 @@ data class CloneBlocksConfig(
 
     /** `0` derives a deterministic seed from the chunk content. */
     val seed: Long = 0,
-) {
+) : SeededPassConfig<CloneBlocksConfig> {
     init {
         require(blocksPerPrototype >= 1)
         require(junkPerGuard in 0..16)
     }
+
+    override fun withSeed(seed: Long): CloneBlocksConfig = copy(seed = seed)
 }
 
 /** Single CFF emitter, with transactional candidates and explicit feature gates. */
@@ -224,11 +236,13 @@ data class ControlFlowFlatteningConfig(
     val segmentSize: Int = 8,
     val maxExpansionFactor: Int = 200,
     val maxValidationSteps: Int = 2_000_000,
-) {
+) : SeededPassConfig<ControlFlowFlatteningConfig> {
     init {
         require(segmentSize > 0)
         require(maxExpansionFactor > 0 && maxValidationSteps > 0)
     }
+
+    override fun withSeed(seed: Long): ControlFlowFlatteningConfig = copy(seed = seed)
 
     companion object {
         val BASELINE = ControlFlowFlatteningConfig()
@@ -274,4 +288,6 @@ data class RegisterObfuscationConfig(
      */
     val registerSplitting: Boolean = false,
     val seed: Long = 0,
-)
+) : SeededPassConfig<RegisterObfuscationConfig> {
+    override fun withSeed(seed: Long): RegisterObfuscationConfig = copy(seed = seed)
+}
