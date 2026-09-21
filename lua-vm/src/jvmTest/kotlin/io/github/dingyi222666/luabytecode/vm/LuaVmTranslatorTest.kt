@@ -1,10 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
-import io.github.dingyi222666.luabytecode.platform.jvm.load
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
-import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -14,8 +11,7 @@ import kotlin.test.assertTrue
 class LuaVmTranslatorTest {
     private val map = LuaVmProgram.OpcodeMap.random(ObfRandom(42L))
 
-    private fun load(name: String) =
-        LuaChunkLoader.load(File("src/test/resources/real/ctor/$name"), LuaBytecodeVersion.LUA_5_3)
+    private fun load(name: String) = loadVmFixture(name, LuaBytecodeVersion.LUA_5_3)
 
     // WIP (goal round 83): the translator compiles and refuses unsupported opcodes, but the
     // translated c10_ifchain inner prototype still prints a different sequence than the
@@ -92,10 +88,7 @@ class LuaVmTranslatorTest {
         )
 
         // 5.4 generic-for now uses its own result and closing-variable layout.
-        val generic54 = LuaChunkLoader.load(
-            File("src/test/resources/real/ctor/c05_generic_ipairs_54.luac"),
-            LuaBytecodeVersion.LUA_5_4,
-        )
+        val generic54 = loadVmFixture("c05_generic_ipairs_54.luac", LuaBytecodeVersion.LUA_5_4)
         assertNotNull(
             LuaVmTranslator.translate(generic54.mainPrototype, map, scratch = generic54.mainPrototype.maxStackSize),
             "5.4 generic for must be translated",

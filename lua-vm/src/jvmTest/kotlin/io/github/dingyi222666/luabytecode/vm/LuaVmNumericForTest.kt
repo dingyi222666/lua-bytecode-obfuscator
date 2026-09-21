@@ -1,10 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
-import io.github.dingyi222666.luabytecode.platform.jvm.load
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
-import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -36,10 +33,7 @@ class LuaVmNumericForTest {
 
     @Test
     fun `the c01 numeric for main prototype runs on the vm`() {
-        val chunk = LuaChunkLoader.load(
-            File("src/test/resources/real/ctor/c01_numericfor_53.luac"),
-            LuaBytecodeVersion.LUA_5_3,
-        )
+        val chunk = loadVmFixture("c01_numericfor_53.luac", LuaBytecodeVersion.LUA_5_3)
         val map = LuaVmProgram.OpcodeMap.random(ObfRandom(9L))
         val program = LuaVmTranslator.translate(chunk.mainPrototype, map, scratch = chunk.mainPrototype.maxStackSize)
         assertNotNull(program, "the main chunk of c01_numericfor must now be translatable")
@@ -52,10 +46,7 @@ class LuaVmNumericForTest {
 
     @Test
     fun `every iteration is printed exactly once, in order, for positive and negative steps`() {
-        val chunk = LuaChunkLoader.load(
-            File("src/test/resources/real/ctor/c14_numericfor_print_53.luac"),
-            LuaBytecodeVersion.LUA_5_3,
-        )
+        val chunk = loadVmFixture("c14_numericfor_print_53.luac", LuaBytecodeVersion.LUA_5_3)
         val map = LuaVmProgram.OpcodeMap.random(ObfRandom(11L))
         val program = LuaVmTranslator.translate(chunk.mainPrototype, map, scratch = chunk.mainPrototype.maxStackSize)
         assertNotNull(program, "the c14 numeric for fixture must be inside the subset")
@@ -75,10 +66,7 @@ class LuaVmNumericForTest {
     fun `5_4 and 5_5 count based numeric for are refused, never mistranslated`() {
         for (version in listOf(LuaBytecodeVersion.LUA_5_4, LuaBytecodeVersion.LUA_5_5)) {
             val suffix = if (version == LuaBytecodeVersion.LUA_5_4) "54" else "55"
-            val chunk = LuaChunkLoader.load(
-                File("src/test/resources/real/ctor/c14_numericfor_print_$suffix.luac"),
-                version,
-            )
+            val chunk = loadVmFixture("c14_numericfor_print_$suffix.luac", version)
             val map = LuaVmProgram.OpcodeMap.random(ObfRandom(13L))
             assertNull(
                 LuaVmTranslator.translate(chunk.mainPrototype, map, scratch = chunk.mainPrototype.maxStackSize),

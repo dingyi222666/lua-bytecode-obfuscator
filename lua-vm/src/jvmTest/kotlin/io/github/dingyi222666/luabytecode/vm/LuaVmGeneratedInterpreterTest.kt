@@ -1,9 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
-import io.github.dingyi222666.luabytecode.platform.jvm.load
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,10 +17,7 @@ class LuaVmGeneratedInterpreterTest {
     private val lua = File("/tmp/lua-5.3.6/src/lua")
 
     private fun emit(seed: Long): String {
-        val chunk = LuaChunkLoader.load(
-            File("src/test/resources/real/ctor/c01_numericfor_53.luac"),
-            LuaBytecodeVersion.LUA_5_3,
-        )
+        val chunk = loadVmFixture("c01_numericfor_53.luac", LuaBytecodeVersion.LUA_5_3)
         val module = LuaVmObfuscation.emitModule(chunk, ObfRandom(seed), LuaVmObfuscation.Options(seed = seed))
         assertNotNull(module, "c01_numericfor must be inside the VM subset")
         return module
