@@ -96,7 +96,7 @@ object Md5 {
                 val tmp = d
                 d = c
                 c = b
-                b = b + ((a + f + K[i] + m[g]) rotateLeft S[i])
+                b = b + (a + f + K[i] + m[g]).rotateLeft(S[i])
                 a = tmp
             }
             a0 += a
