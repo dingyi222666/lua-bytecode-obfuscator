@@ -7,8 +7,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.LuaUpvalue
 import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkWriter
 
 /**
  * Editing API for the [LuaChunk] model.

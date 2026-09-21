@@ -22,4 +22,5 @@ rootProject.name = "lua-bytecode-obfuscator"
 include(":lua-platform")
 include(":lua-bytecode-model")
 include(":lua-bytecode-io")
+include(":lua-bytecode-edit")
 

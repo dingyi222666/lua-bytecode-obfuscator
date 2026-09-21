@@ -5,6 +5,9 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import io.github.dingyi222666.luabytecode.bytecode.loadFixture
+// setAbsoluteLines now ships with :lua-bytecode-edit (same package, other
+// module) — the explicit import keeps the dependency visible.
+import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

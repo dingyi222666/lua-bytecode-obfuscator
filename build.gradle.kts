@@ -23,6 +23,8 @@ dependencies {
     implementation(project(":lua-bytecode-model"))
     // Reader/writer/loader of Lua binary chunks, KMP commonMain + JVM adapters.
     implementation(project(":lua-bytecode-io"))
+    // In-place bytecode editing DSL and prototype edit API, KMP commonMain.
+    implementation(project(":lua-bytecode-edit"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))

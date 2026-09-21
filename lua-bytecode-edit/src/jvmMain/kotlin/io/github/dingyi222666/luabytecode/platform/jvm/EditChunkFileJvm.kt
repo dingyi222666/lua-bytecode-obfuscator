@@ -11,15 +11,15 @@ import java.io.File
 
 /**
  * `editChunkFile(input, output) { .. }` — the file based load → edit → dump
- * entry point. It stays in the root module because it depends on the edit DSL;
- * the plain `load(File/InputStream)` / `dump(chunk, File/OutputStream)`
- * adapters moved to the `:lua-bytecode-io` module's jvmMain (same package and
- * call syntax).
+ * entry point. It lives in this module's jvmMain because it composes the edit
+ * DSL with the io adapters (the plain `load(File/InputStream)` /
+ * `dump(chunk, File/OutputStream)` extensions come from `:lua-bytecode-io`
+ * jvmMain, same package and call syntax).
  *
- * The file is deliberately NOT named `LuaChunkIoJvm.kt` anymore: the io module
- * has a file of the same name in the same package, and two `platform.jvm.
- * LuaChunkIoJvmKt` facade classes on one compile classpath shadow each other
- * (that broke the root test compilation in CI).
+ * The file keeps the name `EditChunkFileJvm.kt` on purpose: two facade classes
+ * with the same JVM name in one package shadow each other on a compile
+ * classpath (see the `LuaChunkIoJvmKt` lesson in
+ * `docs/roadmap-kmp-progress.md`).
  */
 fun editChunkFile(input: File, output: File, block: LuaChunkScope.() -> Unit): LuaChunk {
     val chunk = LuaChunkLoader.load(input)
