@@ -28,11 +28,18 @@ version = "1.0-SNAPSHOT"
 
 kotlin {
     wasmJs {
-        // Pin the module name: the shipped index.html and the CI dist smoke
-        // reference composeApp.mjs / composeApp.wasm, so the output must not
-        // drift with the Gradle-derived default naming scheme.
+        // Pin the module identity: the shipped page and the CI dist smoke
+        // reference the composeApp entry (the webpack output file name itself
+        // is pinned via commonWebpackConfig below — it defaults to the Gradle
+        // project name, not to outputModuleName).
         outputModuleName.set("composeApp")
         browser {
+            commonWebpackConfig {
+                // Without this the dist entry is named after the Gradle
+                // project (lua-web-compose.js); pin it so index.html and the
+                // CI smoke can rely on a stable name.
+                outputFileName.set("composeApp.js")
+            }
         }
         binaries.executable()
     }

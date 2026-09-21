@@ -14,14 +14,15 @@
 </head>
 <body>
 <script type="module">
-  // The Kotlin/Wasm production linker emits composeApp.mjs (outputModuleName
-  // is pinned in build.gradle.kts); fall back to the .js spelling of older
-  // KGP layouts so this page works with either distribution shape.
+  // The production dist entry is pinned to composeApp.js
+  // (commonWebpackConfig.outputFileName in build.gradle.kts); fall back to
+  // the .mjs spelling of non-webpack layouts so this page works with either
+  // distribution shape.
   try {
-    await import("./composeApp.mjs");
+    await import("./composeApp.js");
   } catch (cause) {
     try {
-      await import("./composeApp.js");
+      await import("./composeApp.mjs");
     } catch (fallbackCause) {
       const message = document.createElement("pre");
       message.style.cssText = "white-space:pre-wrap;padding:1rem;font-family:system-ui;";
