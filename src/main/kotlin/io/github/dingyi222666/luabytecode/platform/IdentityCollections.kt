@@ -129,7 +129,12 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
         get() = object : AbstractMutableSet<K>() {
             override val size: Int
                 get() = this@IdentityMap.size
-            override fun add(element: K): Boolean = this@IdentityMap.put(element, null as V?) == null
+            @Suppress("UNCHECKED_CAST")
+            override fun add(element: K): Boolean {
+                if (containsKey(element)) return false
+                this@IdentityMap.put(element, null as V)
+                return true
+            }
             override fun remove(element: K): Boolean = this@IdentityMap.remove(element) != null
             override fun contains(element: K): Boolean = containsKey(element)
             override fun clear() = this@IdentityMap.clear()
@@ -203,6 +208,11 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
             set(value) {
                 valueList[index] = value
             }
+        override fun setValue(newValue: V): V {
+            val previous = value
+            value = newValue
+            return previous
+        }
         override fun hashCode(): Int = key.hashCode()
         override fun equals(other: Any?): Boolean =
             other is MutableMap.MutableEntry<*, *> && other.key == key && other.value == value
