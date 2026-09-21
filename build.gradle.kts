@@ -31,6 +31,9 @@ dependencies {
     // Obfuscation contracts: extension point, pipeline config/report types,
     // seed policy and the helpers shared across feature modules.
     implementation(project(":lua-obfuscation-api"))
+    // Optional feature passes, each independently switchable via ObfuscationConfig:
+    implementation(project(":lua-obfuscation-strings"))
+    implementation(project(":lua-obfuscation-constants"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))

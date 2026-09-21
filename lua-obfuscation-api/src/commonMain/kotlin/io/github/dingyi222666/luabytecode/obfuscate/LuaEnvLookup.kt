@@ -9,7 +9,7 @@ package io.github.dingyi222666.luabytecode.obfuscate
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaInstruction
-import io.github.dingyi222666.luabytecode.bytecode.LuaInstructionFactory
+import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.Platform
