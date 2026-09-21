@@ -52,6 +52,7 @@ SCOPE=(
   # set appears in the gate automatically; missing directories are skipped.
   apps/lua-runtime-js/src/commonMain
   apps/lua-cli-native/src/commonMain
+  apps/lua-web-compose/src/commonMain
 )
 
 strip_comments() {

@@ -62,4 +62,10 @@ project(":lua-cli-native").projectDir = file("apps/lua-cli-native")
 // base64 constants and the minimal static web UI.
 include(":lua-runtime-js")
 project(":lua-runtime-js").projectDir = file("apps/lua-runtime-js")
+// Compose Multiplatform web host (Compose Web 改造 Round 3): a wasmJs browser
+// executable that assembles the same common pipeline behind a Compose
+// material3 UI — replaces the handwritten static page + worker of
+// :lua-runtime-js (removed in Round 3 step 3).
+include(":lua-web-compose")
+project(":lua-web-compose").projectDir = file("apps/lua-web-compose")
 

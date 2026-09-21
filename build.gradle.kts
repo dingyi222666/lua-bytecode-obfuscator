@@ -5,6 +5,13 @@ plugins {
     // (pulled in by the jvm plugin), and Gradle rejects versioned subproject
     // requests for plugins whose classpath version cannot be checked.
     id("org.jetbrains.kotlin.multiplatform") version "2.4.20" apply false
+    // Compose Multiplatform web host (:lua-web-compose, Compose Web 改造
+    // Round 3): declared here apply false so the subproject can apply both
+    // plugins without a version — the CMP gradle plugin resolves from the
+    // plugin repositories and the compose compiler plugin ships inside the
+    // same kotlin-gradle-plugin 2.4.20 jar already on this classpath.
+    id("org.jetbrains.compose") version "1.12.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.20" apply false
 }
 
 group = "io.github.dingyi222666"
