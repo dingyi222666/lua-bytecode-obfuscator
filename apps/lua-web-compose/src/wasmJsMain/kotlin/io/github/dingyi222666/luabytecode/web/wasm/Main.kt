@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.web.wasm
 
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import kotlinx.browser.document
 
@@ -10,6 +11,7 @@ import kotlinx.browser.document
  * Compose UI into the document body — `ComposeViewport` is the current
  * Compose-for-Web entry (CanvasBasedWindow is deprecated).
  */
+@OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     WasmPlatform.install()
     ComposeViewport(document.body!!) {
