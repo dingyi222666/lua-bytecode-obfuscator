@@ -27,7 +27,14 @@ kotlin {
     // Pin the target name "native" so the source sets and tasks read
     // nativeMain / linkReleaseExecutableNative / nativeTest.
     linuxX64("native") {
-        binaries.executable()
+        binaries {
+            executable {
+                // The entry point lives in the cli package (next to the JVM
+                // cli/Main.kt it mirrors); the K/N linker only searches the
+                // root package without this hint.
+                entryPoint = "io.github.dingyi222666.luabytecode.cli.main"
+            }
+        }
     }
 
     sourceSets {
