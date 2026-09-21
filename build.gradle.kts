@@ -50,8 +50,16 @@ application {
     mainClass.set("io.github.dingyi222666.luabytecode.cli.MainKt")
 }
 
+// The CLI runtime classpath, handed to VmDisablementTest (it spawns a fresh JVM
+// to prove the disablement contract; Gradle test workers do not expose a usable
+// java.class.path for the application under test).
+val cliRuntimeClasspath = sourceSets["main"].runtimeClasspath.asPath
+
 tasks.test {
     useJUnitPlatform()
+    doFirst {
+        file("$buildDir/cli-test-classpath.txt").writeText(cliRuntimeClasspath)
+    }
 }
 
 kotlin {
