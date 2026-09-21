@@ -163,7 +163,7 @@ object LuaConstantEncryptor {
 
         // Upvalue slots: the main chunk hosts kget, every ancestor of a patched
         // prototype forwards it (same chain as the string decoder's).
-        val needsSlot = IdentitySet<LuaPrototype>()
+        val needsSlot = IdentityMap<LuaPrototype, Boolean>()
         needsSlot[main] = true
         markSlots(main, sites.keys, needsSlot, emptyList())
         val slotOf = IdentityMap<LuaPrototype, Int>()
@@ -554,7 +554,7 @@ object LuaConstantEncryptor {
     private fun markSlots(
         prototype: LuaPrototype,
         patched: Set<LuaPrototype>,
-        needsSlot: IdentitySet<LuaPrototype>,
+        needsSlot: IdentityMap<LuaPrototype, Boolean>,
         ancestors: List<LuaPrototype>,
     ) {
         val chain = ancestors + prototype
@@ -569,7 +569,7 @@ object LuaConstantEncryptor {
     private fun assignSlots(
         prototype: LuaPrototype,
         parentSlot: Int?,
-        needsSlot: IdentitySet<LuaPrototype>,
+        needsSlot: IdentityMap<LuaPrototype, Boolean>,
         slotOf: IdentityMap<LuaPrototype, Int>,
     ) {
         var slot = parentSlot

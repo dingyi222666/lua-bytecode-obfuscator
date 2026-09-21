@@ -69,7 +69,7 @@ object LuaVmInterpreter {
                 LuaVmProgram.Op.SUB -> frame.write(insn.a, numeric(frame.read(insn.b)) - numeric(frame.read(insn.c)))
                 LuaVmProgram.Op.MUL -> frame.write(insn.a, numeric(frame.read(insn.b)) * numeric(frame.read(insn.c)))
                 LuaVmProgram.Op.DIV -> frame.write(insn.a, numeric(frame.read(insn.b)).toDouble() / numeric(frame.read(insn.c)).toDouble())
-                LuaVmProgram.Op.IDIV -> frame.write(insn.a, floorDiv(numeric(frame.read(insn.b)), numeric(frame.read(insn.c))))
+                LuaVmProgram.Op.IDIV -> frame.write(insn.a, numeric(frame.read(insn.b)).floorDiv(numeric(frame.read(insn.c))))
                 LuaVmProgram.Op.MOD -> frame.write(insn.a, numeric(frame.read(insn.b)) % numeric(frame.read(insn.c)))
                 LuaVmProgram.Op.POW -> frame.write(insn.a, numeric(frame.read(insn.b)).toDouble().pow(numeric(frame.read(insn.c)).toDouble()))
                 LuaVmProgram.Op.BAND -> frame.write(insn.a, numeric(frame.read(insn.b)) and numeric(frame.read(insn.c)))

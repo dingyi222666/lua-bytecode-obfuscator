@@ -2,8 +2,6 @@ package io.github.dingyi222666.luabytecode.bytecode.support
 
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.platform.md5Hex
-import kotlin.math.floorDiv
-import kotlin.math.floorMod
 
 /**
  * Structurally distinct Lua decode-skeleton variants (B6/Round4, VM-2 附录 B).
@@ -266,7 +264,7 @@ object LuaDecodeVariants {
 
     /** Kotlin mirror of [seedInitFunction]. */
     fun seedInitMirror(d: Draw, seed: Long): Long {
-        fun mod32(v: Long): Long = floorMod(v, LcgSpec.MODULUS)
+        fun mod32(v: Long): Long = v.mod(LcgSpec.MODULUS)
         val s: Long = when (d.seedInit) {
             SeedInit.MIXED_GUARD -> mod32(seed * d.m1 + d.a1)
             SeedInit.XOR_PRE -> mod32(mod32(seed xor d.k1) * d.m1 + d.a1)
@@ -285,7 +283,7 @@ object LuaDecodeVariants {
     fun stepMirror(spec: LcgSpec, form: StepForm, s: Long): Long {
         val a = spec.multiplier
         val c = spec.increment
-        fun mod32(v: Long): Long = floorMod(v, LcgSpec.MODULUS)
+        fun mod32(v: Long): Long = v.mod(LcgSpec.MODULUS)
         return when (form) {
             StepForm.DIRECT -> mod32(s * a + c)
             StepForm.SPLIT_MOD -> mod32(mod32(s * a) + c)
@@ -293,19 +291,19 @@ object LuaDecodeVariants {
             StepForm.TWO_STATEMENT -> mod32(mod32(s * a) + c)
             StepForm.HALF_SPLIT -> {
                 val lo = s % 65536
-                val hi = floorDiv(s, 65536L)
+                val hi = s.floorDiv(65536L)
                 val aLo = a % 65536
                 val aHi = a / 65536
-                mod32(lo * aLo + floorMod(hi * aLo + lo * aHi, 65536L) * 65536 + c)
+                mod32(lo * aLo + (hi * aLo + lo * aHi).mod(65536L) * 65536 + c)
             }
         }
     }
 
     /** Kotlin mirror of [byteExpression]. */
     fun byteMirror(form: ByteExtract, s: Long): Int = when (form) {
-        ByteExtract.FLOOR_DIV -> (floorDiv(s, 65536L) % 256).toInt()
+        ByteExtract.FLOOR_DIV -> (s.floorDiv(65536L) % 256).toInt()
         ByteExtract.SHIFT_AND -> ((s ushr 16) and 255L).toInt()
-        ByteExtract.MOD_CHAIN -> (floorMod(s, 16777216L) / 65536L).toInt()
+        ByteExtract.MOD_CHAIN -> (s.mod(16777216L) / 65536L).toInt()
         ByteExtract.ARITH_PLANE -> (s / 65536 - s / 16777216 * 256).toInt()
     }
 

@@ -170,7 +170,7 @@ object LuaStringEncryptor {
 
         // Upvalue slots: the main chunk hosts the decoder, every ancestor of a patched
         // prototype forwards it, so a nested stub can reach it through `GETUPVAL`.
-        val needsSlot = IdentitySet<LuaPrototype>()
+        val needsSlot = IdentityMap<LuaPrototype, Boolean>()
         needsSlot[main] = true // the main chunk always hosts the decoder
         markSlots(main, sites.keys, needsSlot, emptyList())
         val slotOf = IdentityMap<LuaPrototype, Int>()
@@ -368,7 +368,7 @@ object LuaStringEncryptor {
     private fun markSlots(
         prototype: LuaPrototype,
         patched: Set<LuaPrototype>,
-        needsSlot: IdentitySet<LuaPrototype>,
+        needsSlot: IdentityMap<LuaPrototype, Boolean>,
         ancestors: List<LuaPrototype>,
     ) {
         val chain = ancestors + prototype
@@ -383,7 +383,7 @@ object LuaStringEncryptor {
     private fun assignSlots(
         prototype: LuaPrototype,
         parentSlot: Int?,
-        needsSlot: IdentitySet<LuaPrototype>,
+        needsSlot: IdentityMap<LuaPrototype, Boolean>,
         slotOf: IdentityMap<LuaPrototype, Int>,
     ) {
         var slot = parentSlot
