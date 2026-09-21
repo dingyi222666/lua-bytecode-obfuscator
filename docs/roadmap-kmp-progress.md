@@ -759,7 +759,12 @@ native 测试首次链接（2M 步 LCG 走查在 debug 测试二进制上的首�
 
 ### 终验 CI
 
-- 终验变更 run：<待补，见下>
+- 终验变更 run：35583035780（<https://github.com/dingyi222666/lua-bytecode-obfuscator/actions/runs/35583035780>，
+  2026-09-21）——Build & Test（build + native CLI smoke + KMP purity gate）
+  2m12s 全绿；differential-matrix job 15s：探测到 runner 缺三版本
+  lua/luac，逐项输出 skipped 理由后 exit 0（设计内跳过，非语义通过；
+  环境齐备时该 job 会实际执行 `tools/verify-all.sh`）。
+- 基线（终验前 main）：35579655014。
 
 ## Phase 1：问题记录（历史）
 
