@@ -1,8 +1,5 @@
 package io.github.dingyi222666.luabytecode.bytecode
 
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
-import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkWriter
-
 /**
  * Upvalue descriptor stored in a prototype (`Proto.upvalues`).
  *
@@ -63,7 +60,7 @@ data class LuaAbsoluteLineInfo(
  * attached through [nestedPrototypes].
  *
  * The tables are [MutableList]s, so a loaded chunk can be edited in place and
- * written back with [LuaChunkWriter]:
+ * written back with the `LuaChunkWriter` of the `bytecode.io` package:
  *
  * ```kotlin
  * val chunk = LuaChunkLoader.load(File("script.luac"))
@@ -75,7 +72,7 @@ data class LuaAbsoluteLineInfo(
  *
  * Keep the tables consistent: `lineInfo` must have one entry per instruction
  * whenever it is not empty, and `upvalueNames` must be either empty or as long
- * as [upvalues]. [LuaChunkWriter] rejects inconsistent trees instead of writing
+ * as [upvalues]. `LuaChunkWriter` rejects inconsistent trees instead of writing
  * a chunk Lua cannot load.
  */
 data class LuaPrototype(

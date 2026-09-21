@@ -20,5 +20,12 @@ kotlin {
             // allowed dependency, no java.*, no file system, no processes.
             implementation(kotlin("stdlib"))
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
+}
+
+tasks.named<Test>("jvmTest") {
+    useJUnitPlatform()
 }
