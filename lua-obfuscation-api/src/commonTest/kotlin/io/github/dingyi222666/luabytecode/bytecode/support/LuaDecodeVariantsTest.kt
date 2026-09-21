@@ -169,7 +169,7 @@ class LuaDecodeVariantsTest {
             assertTrue("state" in byteExpr && "@S@" !in byteExpr)
             // end-to-end mirror round trip
             var state = LuaDecodeVariants.seedInitMirror(draw, 777L)
-            val plain = "round trip payload 混淆".toByteArray(Charsets.UTF_8)
+            val plain = "round trip payload 混淆".encodeToByteArray()
             val cipher = ByteArray(plain.size)
             for (i in plain.indices) {
                 state = LuaDecodeVariants.stepMirror(spec, draw.stepForm, state)
