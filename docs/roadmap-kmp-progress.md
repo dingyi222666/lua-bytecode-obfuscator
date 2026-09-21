@@ -12,7 +12,7 @@
 | 3 | 第 3 步 | reader/writer 与 editor DSL 拆成独立模块（保留包名兼容 facade） | **完成（2026-09-21）** |
 | 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | **完成（2026-09-21）** |
 | 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | **完成（2026-09-21）** |
-| 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | **前半完成（2026-09-21，jsMain 网页端）**；nativeMain CLI 未开始 |
+| 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | **完成（2026-09-21）**：前半 jsMain 网页端；后半 nativeMain CLI + pipeline 下沉（见下方 Phase 6 后半） |
 | 终验 | 第 7 步 | 现有 225 tests、三版本差分矩阵、VM 矩阵全绿验收 | 未开始 |
 
 ## Phase 1：:lua-bytecode-model（commonMain）
@@ -546,14 +546,163 @@ jvmMain 资源 → base64 + md5。一致性三角固定：
 
 ### Phase 6（前半）遗留项
 
-* nativeMain CLI（roadmap 第 6 步后半）未开始。
+* ~~nativeMain CLI（roadmap 第 6 步后半）未开始~~ → 已在 Phase 6 后半完成（见下）。
 * 浏览器内真实 Worker/下载行为只有静态冒烟，未做 headless 集成（CI 原则：
   不跑浏览器）；首次真实使用建议手动 `webDist` 后过一遍页面。
 * `WebObfuscator` 未暴露 VM staging（:lua-vm 已在依赖内，待需求出现时加
   stage 注入口）。
-* feature 模块的 fixture 型 jvmTest 与 9 份 TestFixtures 副本照旧（js 侧
+* feature 模块的 fixture 型 jvmTest 与 TestFixtures 副本照旧（js 侧
   fixture 加载未做 expect/actual，js 测试全部用内嵌 base64 fixture）。
 * api-implementation 暴露面、TestFixtures 收敛等 Phase 4/5 遗留照旧。
+
+## Phase 6（后半）：pipeline 下沉 + nativeMain CLI（2026-09-21 完成）
+
+roadmap 第 6 步的后半，验收达成："**Native CLI 是唯一默认 CLI；JVM 入口
+不再作为默认 application artifact**"。全部 13 个库模块获得 `linuxX64()`
+target；新建 `:lua-obfuscation-pipeline`（编排器下沉，jvm/js/native 三端共
+用）与 `:lua-cli-native`（默认 CLI，linuxX64 可执行）。
+
+### native 目标矩阵（13/13 库模块 + Native CLI）
+
+| 模块 | linuxX64 | native 测试 | 备注 |
+|---|---|---|---|
+| :lua-platform | ✅ | —（无 commonTest） | 接缝的 native 实现按 6a 决策放宿主模块（见下） |
+| :lua-bytecode-model | ✅ | linuxX64Test（LuaInstructionTest） | 纯 common 零改动通过 |
+| :lua-bytecode-io | ✅ | linuxX64Test（LuaChunkReaderTest） | fixture 型套件仍锁 jvmTest |
+| :lua-bytecode-edit | ✅ | — | |
+| :lua-bytecode-analysis | ✅ | — | |
+| :lua-obfuscation-api | ✅ | linuxX64Test（Lcg/DecodeVariants） | 修 1 处 K/N 非法测试名（backtick 内逗号，见踩坑 1） |
+| :lua-obfuscation-{strings,constants,jumps,cff,register} | ✅ | — | 共用代码 js 时已修完，native 零改动 |
+| :lua-vm | ✅ | linuxX64Test（CapabilityReport 契约） | 零改动 |
+| :lua-obfuscation-pipeline（新） | ✅ | linuxX64Test（PipelineContractTest） | jvm/js/native 同一套件，见下 |
+| :lua-cli-native（新） | ✅ `linuxX64("native")` | nativeTest 15 个（参数面/资产完整性/e2e×5） | `binaries.executable()` + entryPoint，见下 |
+
+### :lua-obfuscation-pipeline（编排器下沉）
+
+* `git mv` 进 commonMain（**包名不变**）：`LuaObfuscator`（编排器）、
+  `LuaKeyRenaming`、`LuaHostSeed`、`vm/LuaVmPipeline`（组合根）。
+  **推翻 Phase 5 决策 5/6 的"留在根模块"**：Phase 6b 要求三端共用编排器，
+  keyRenaming 是 LuaObfuscator 的直接 pass、hostSeed 是编排层原语，随编排器
+  整体下沉最自然（独立 `:lua-obfuscation-keys` 仍留作发布需求出现时的选项）。
+* 依赖：platform/model/edit/analysis/api + 五 feature + vm（含 `maven-publish`）；
+  commonTest 额外依赖 io（内嵌 fixture 走 common loader）。位于全部 feature
+  之上、宿主（根 JVM 库入口/:lua-runtime-js/:lua-cli-native）之下。
+* 测试迁移：`SingleModuleIsolationTest`、`LuaHostSeedTest`、`LuaVmPipelineTest`
+  → pipeline jvmTest（fixture 子集 9 个 bytecode + c01；TestFixtures 第 10 份
+  副本、InstallJvmPlatformExtension 第 8 份 + services + junit-platform.properties，
+  与既有机制同构）。依赖真实 JVM fixture/差分工具的集成测试
+  （LuaAdvancedProtection、StringCoverage、LuaPipelineConstantLeak、
+  VmDisablement、各组合测试等）留在根模块。
+* 新增 `PipelineContractTest`（commonTest，**三平台自动跑**）：内嵌 base64
+  c01 fixture、资产无关（strings/constants 关闭——它们是仅有的需要 bundled
+  decoder 资产的 pass，资产由各宿主装配器供给），断言：feature 栈报告恰好
+  已启用 pass、no-op 运行可重载、LuaVmPipeline 严格入口在三平台一致拒绝。
+* 根模块 `implementation(project(":lua-obfuscation-pipeline"))`；cli/Main.kt
+  对 `LuaObfuscator` 的引用因包名不变零改动。
+
+### 平台接缝的 native 装配（NativePlatform，同 6a 归属逻辑）
+
+`NativePlatform` 位于 **:lua-cli-native nativeMain**——native CLI 是唯一的
+native 宿主装配点，与 JsPlatform 放 :lua-runtime-js 同构（:lua-platform 在
+依赖图上位于 feature 之下，不能承载 feature 的 decoder 资产）：
+
+* `SecureEntropy` — `/dev/urandom`（fopen/fread 8 字节大端拼 Long）。
+* `BundledChunkSource` — 编译期内嵌常量（见下节），路径契约与 JVM/js 一致。
+* `DebugLog` — posix `getenv` 开关（`CFF_DEBUG`、`K_DEBUG`、...），stderr sink。
+* `TraceSink` — `/tmp/vm-subset-on` 哨兵 → 追加 `/tmp/vm-subset.txt`
+  （与 JvmPlatform 字节级同约定）。
+
+### 资产投递：native 侧编译期内嵌（三方一致）
+
+`tools/generate-js-decoder-assets.py` 扩展为同时产出两份生成文件：
+`LuaDecoderAssetsJs.kt`（js，未变）与
+`lua-cli-native/.../LuaDecoderAssetsNative.kt`（native，新增）。一致性三角：
+
+* strings/constants 的 jvmTest `DecoderAssetIntegrityTest`（classpath 资源
+  md5 == 提交摘要，原有）；
+* :lua-runtime-js `LuaDecoderAssetsJsTest`（js 常量解码后 md5 + 全量解析 + 版本字节）；
+* :lua-cli-native `LuaDecoderAssetsNativeTest`（native 侧同断言，
+  `platform.Md5` + `LuaChunkLoader`）。
+
+改任何 .luac 而不重新生成 → 三方必有一侧 CI 红。
+
+### :lua-cli-native（默认 CLI）
+
+* 构建：`linuxX64("native")`（target 名钉为 native，任务读
+  `linkReleaseExecutableNative`/`nativeTest`）+ `binaries.executable()`。
+  **entryPoint 必须显式**（见踩坑 2）。只依赖 pipeline + io（字节级
+  load/dump），不依赖根。
+* `NativeCli.kt`：`fun main` 首行 `NativePlatform.install()`；可测函数
+  `runNativeCli(args): Int` 返回退出码而非终止进程（0 ok / 1 非法字节码 /
+  2 用法错误 / 3 VM 拒绝，与 JVM CLI 相同）。字节级 io 走 posix
+  fopen/fread/fwrite。
+* CLI 参数对齐表（JVM cli/Main.kt ↔ native）：
+
+| 能力 | JVM | native |
+|---|---|---|
+| 输入文件（位置参数）、`--expect 5.3/5.4/5.5`、`--seed n` | ✅ | ✅ |
+| `--obfuscate light/balanced/aggressive` | ✅ | ✅ |
+| `--strings[=n]` `--constants` `--encrypt-keys` `--jmp[=d]` `--jmp-advanced` `--jmp-decoys n` `--junk[=n]` `--predicate f` `--rings b[:l]` `--clone[=n]` `--flatten` `--cff b/f/s` `--strip-debug` | ✅ | ✅ |
+| `--cff-allow-allocation-effects` | ✅ | ✅ |
+| `--dump out`、`--vm-out out`（四分类报告；拒绝 exit 3） | ✅ | ✅ |
+| preset×granular flag 合并语义（CLI-MERGE-1） | ✅ | 逐行移植 |
+| 检查打印类 `--summary` `--no-code` `--no-debug` | ✅ | 未包含（最小可用子集） |
+| 编辑类 `--replace-string` `--strip`、`--verify`、`--cff-features` `--cff-report` | ✅ | 未包含（最小可用子集；VM stage 注入也走默认入口，与 JVM CLI 相同） |
+
+* nativeTest（15 个）：参数面/用法错误套件（不落盘）、
+  `LuaDecoderAssetsNativeTest`（4 个，含 NativePlatform 熵/资产/调试冒烟）、
+  文件级 e2e 5 个（balanced 资产路径、granular flags、非法输入 exit 1、
+  版本不符 exit 1、`--vm-out` 出解释器模块）。
+* 根模块移除 `application` 插件与 mainClass；cli/Main.kt 保留为 JVM 库入口
+  与 VmDisablementTest 的测试载体（java -cp 运行）；decompile/legacy/B4 等
+  JVM 件不动。
+
+### CI（verify.yml）
+
+* `./gradlew build` 天然覆盖：13 个模块 `compileKotlinLinuxX64` + CLI
+  `linkDebug/ReleaseExecutableNative` + 各模块 `linuxX64Test`/`nativeTest`。
+* 新增 "Native CLI smoke" 步骤：实际运行 release 可执行 `--help`
+  （exit 0 + 产物存在断言）。purity gate 与 SCOPE 语义未动
+  （SCOPE 仅按模块扩展 `lua-obfuscation-pipeline/src/commonMain`）。
+
+### CI 时长数据（每段 push → 绿）
+
+| 段 | run | 时长 |
+|---|---|---|
+| 段1 pipeline 下沉 | 35574468042 | 1m52s |
+| 段2a platform/model/io native（首跑，konan 依赖补齐） | 35574722951 | 2m16s |
+| 段2b edit/analysis/api（首次含 api native 测试链接） | 35575523736 | 9m55s |
+| 段2c features/vm/pipeline | 35576467335 | 2m09s |
+| 段3+4 cli-native（链接两份可执行 + nativeTest + 冒烟） | 35578466666 | 2m16s |
+| 段5 移除 application | 35578907705 | 2m19s |
+
+稳态 ~2m15s（native 之前 ~1m37s，增量约 +40s）；唯一超过 5 分钟的是 api
+native 测试首次链接（2M 步 LCG 走查在 debug 测试二进制上的首跑）。远低于
+30 分钟阈值，无需限制 nativeTest 范围。konan 工具链缓存在自托管 runner 的
+`~/.konan`，跨 run 复用。
+
+### Phase 6（后半）踩坑记录
+
+1. **Kotlin/Native 拒绝 backtick 测试名中的逗号**（`Name contains illegal
+   characters: ","`）：JVM/js 编译通过、linuxX64Test 编译红
+   （LuaDecodeVariantsTest 一处），改 dash 分隔。铺开前应全仓扫
+   `fun \`…,…\``。
+2. **K/N linker 只在根包找 main**：入口在 `…luabytecode.cli` 包时链接报
+   `Could not find '/main' function`，需在 executable 上显式
+   `entryPoint = "io.github.dingyi222666.luabytecode.cli.main"`。
+3. gpg 签名在本机持续失败（pinentry 无法弹窗），按先例 `--no-gpg-sign`。
+
+### Phase 6（后半）遗留项
+
+* 真实 lua 三版本差分矩阵仍由 tools/verify-*.sh 承担（服务器手动），CI 内
+  不跑差分——native CLI 输出与 JVM 的字节级一致性目前由共享 common 管线 +
+  各平台 e2e 间接保证，未做逐字节断言。
+* native CLI 未包含检查/编辑类 flag（见对齐表）；需求出现时按表扩齐。
+* `interpreter.bytecode.cff` 仍未实现（roadmap 第 7 步之后的闭环目标）。
+* TestFixtures 10 份 / InstallJvmPlatformExtension 8 份副本继续并存；
+  js/native fixture 加载 expect/actual 未做（js/native 测试用内嵌 base64）。
+* api-implementation 暴露面、`WebObfuscator` VM staging 注入口等 Phase 4/5/6
+  前半遗留照旧。
 
 ## Phase 1：问题记录（历史）
 

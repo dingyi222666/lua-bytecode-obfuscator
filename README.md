@@ -24,13 +24,21 @@ Lua 字节码工具链（从 [LuaStringFog](https://github.com/dingyi222666/LuaS
 
 ## 快速开始
 
-### 1. 解析并查看
+默认 CLI 是 **Native CLI**（roadmap 第 6 步验收：JVM 入口不再是默认
+application artifact）。构建并运行：
 
 ```bash
-./gradlew run --args="src/test/resources/bytecode/features_55.luac"
-./gradlew run --args="chunk.luac --summary"
-./gradlew run --args="chunk.luac --expect 5.4 --no-debug --no-code"
+./gradlew :lua-cli-native:linkReleaseExecutableNative
+build/lua-cli-native/bin/native/releaseExecutable/lua-cli-native.kexe --help
+# 示例：
+lua-cli-native.kexe chunk.luac --obfuscate balanced --seed 7 --dump out.luac
+lua-cli-native.kexe chunk.luac --vm-out interpreter.lua
 ```
+
+JVM 入口（`cli/Main.kt`，flag 超集：`--summary`、`--replace-string`、
+`--verify` 等）保留为库入口（不再是 application artifact）：把根模块及其
+各 KMP 模块 jar 全部放上类路径后直接调用
+`io.github.dingyi222666.luabytecode.cli.MainKt`，或用 Kotlin/IDE 直接跑。
 
 ```kotlin
 val chunk = LuaChunkLoader.load(File("script.luac"))
@@ -71,17 +79,17 @@ editChunkFile(File("in.luac"), File("out.luac")) {
 }
 ```
 
-命令行同样可以完成一次完整改写（`--dump` 后会立刻重新解析校验产物）：
+命令行（Native CLI）同样可以完成日常混淆（`--dump` 后会立刻重新解析校验产物）：
 
 ```bash
-./gradlew run --args="in.luac --replace-string secret=obfuscated --strip --dump out.luac"
+lua-cli-native.kexe in.luac --strings --jmp=3 --dump out.luac
 ```
 
 ### 3. 直接用 Lua 验证
 
 ```bash
 luac -o script.luac script.lua
-./gradlew run --args="script.luac --dump roundtrip.luac"
+lua-cli-native.kexe script.luac --dump roundtrip.luac
 lua roundtrip.luac        # 与原脚本输出一致
 lua script.luac
 ```
@@ -291,9 +299,14 @@ Edit:
   --verify                      Re-dump in memory and compare with the input
 
 Examples:
-  ./gradlew run --args="script.luac --obfuscate balanced --dump script.obf.luac"
-  ./gradlew run --args="script.luac --strings --jmp=3 --junk=2 --dump out.luac"
+  lua-cli-native.kexe script.luac --obfuscate balanced --dump script.obf.luac
+  lua-cli-native.kexe script.luac --strings --jmp=3 --junk=2 --dump out.luac
+  lua-cli-native.kexe script.luac --vm-out interpreter.lua
 ```
+
+> Native CLI 面向最小可用子集；`--summary`、`--replace-string`、`--verify`、
+> `--cff-features` 等完整 flag 面保留在 JVM 库入口 `cli/Main.kt`（flag 对齐表
+> 见 docs/roadmap-kmp-progress.md Phase 6 后半）。
 
 ## 目录结构
 

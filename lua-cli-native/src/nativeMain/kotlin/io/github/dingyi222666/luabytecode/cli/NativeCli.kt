@@ -62,6 +62,7 @@ Obfuscate (all optional, combinable):
   --rings <blocks>[:<length>]   Unreachable "infinite goto" rings (default 0:2)
   --flatten                     Control flow flattening (OLLVM style dispatcher)
   --cff <baseline|full|stress>   Select CFF feature requests (actual coverage is reported)
+  --cff-allow-allocation-effects Permit private allocation effects under the host contract
   --clone[=n]                   Live block cloning with a trap copy (Collberg §4.2)
   --strip-debug                 Drop line info, locals, upvalue names and sources
   --seed <n>                    Pin the run's master seed (reproducible artifacts).
