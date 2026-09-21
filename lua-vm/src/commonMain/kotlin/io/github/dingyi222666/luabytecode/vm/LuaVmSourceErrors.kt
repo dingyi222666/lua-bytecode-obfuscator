@@ -11,20 +11,20 @@ internal object LuaVmSourceErrors {
         val name = if (nameIndex == 0) byteArrayOf('?'.code.toByte()) else
             (prototype.constants[nameIndex - 1] as LuaConstant.Str).value.bytes.takeWhile { it != 0.toByte() }.toByteArray()
         val source = prototype.source?.bytes
-        val prefix = if (source == null) "?:?: ".toByteArray() else
-            chunkId(source) + ":${prototype.lineForPc(pc)}: ".toByteArray()
-        return LuaConstant.Str(LuaString.of(prefix + "global '".toByteArray() + name + "' already defined".toByteArray()))
+        val prefix = if (source == null) "?:?: ".encodeToByteArray() else
+            chunkId(source) + ":${prototype.lineForPc(pc)}: ".encodeToByteArray()
+        return LuaConstant.Str(LuaString.of(prefix + "global '".encodeToByteArray() + name + "' already defined".encodeToByteArray()))
     }
 
     private fun chunkId(source: ByteArray): ByteArray = when (source.firstOrNull()?.toInt()) {
         '='.code -> source.drop(1).take(59).toByteArray()
         '@'.code -> if (source.size <= 60) source.drop(1).toByteArray()
-            else "...".toByteArray() + source.takeLast(56).toByteArray()
+            else "...".encodeToByteArray() + source.takeLast(56).toByteArray()
         else -> {
             val line = source.takeWhile { it != '\n'.code.toByte() }.toByteArray()
             val body = if (source.size < 45 && line.size == source.size) line
-                else line.take(45).toByteArray() + "...".toByteArray()
-            "[string \"".toByteArray() + body + "\"]".toByteArray()
+                else line.take(45).toByteArray() + "...".encodeToByteArray()
+            "[string \"".encodeToByteArray() + body + "\"]".encodeToByteArray()
         }
     }
 }

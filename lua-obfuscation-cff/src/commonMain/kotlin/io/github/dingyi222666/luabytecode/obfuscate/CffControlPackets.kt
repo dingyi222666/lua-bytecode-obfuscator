@@ -39,7 +39,10 @@ internal class CffControlPackets(
     private val multiple = config.multipleDispatch && runtime
     private val routes = List(if (multiple) 2 else 1) { labels.next() }
     private val tableMode = config.stateTable && config.allocationEffectsUnobservable
-    private fun powerOfTwo(n: Int) = Integer.highestOneBit((n - 1).coerceAtLeast(1)) shl 1
+    // java.lang.Integer.highestOneBit on the common stdlib (0 -> 0; the call
+    // site coerces to >= 1 anyway). countLeadingZeroBits is common stable.
+    private fun highestOneBit(v: Int): Int = if (v == 0) 0 else 1 shl (31 - v.countLeadingZeroBits())
+    private fun powerOfTwo(n: Int) = highestOneBit((n - 1).coerceAtLeast(1)) shl 1
     private val namespaceDomain = powerOfTwo(blockCount + 2)
     private val localDomain = if (config.stateNamespaces) 4 else powerOfTwo(blockCount)
 
