@@ -7,6 +7,7 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.edit
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkWriter
 import java.io.File
+import java.io.InputStream
 import java.io.OutputStream
 
 /**

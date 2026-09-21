@@ -460,3 +460,4 @@ fun LuaChunk.editing(): LuaChunkEditor = LuaChunkEditor(this)
  * `editChunkFile(input, output) { ... }` — the file based entry point — moved
  * to `io.github.dingyi222666.luabytecode.platform.jvm.editChunkFile` so this
  * module stays free of `java.io`; same signature and call syntax.
+ */
