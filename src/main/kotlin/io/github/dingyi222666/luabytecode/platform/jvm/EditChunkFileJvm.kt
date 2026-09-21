@@ -15,6 +15,11 @@ import java.io.File
  * the plain `load(File/InputStream)` / `dump(chunk, File/OutputStream)`
  * adapters moved to the `:lua-bytecode-io` module's jvmMain (same package and
  * call syntax).
+ *
+ * The file is deliberately NOT named `LuaChunkIoJvm.kt` anymore: the io module
+ * has a file of the same name in the same package, and two `platform.jvm.
+ * LuaChunkIoJvmKt` facade classes on one compile classpath shadow each other
+ * (that broke the root test compilation in CI).
  */
 fun editChunkFile(input: File, output: File, block: LuaChunkScope.() -> Unit): LuaChunk {
     val chunk = LuaChunkLoader.load(input)
