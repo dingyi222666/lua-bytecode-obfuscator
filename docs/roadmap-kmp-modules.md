@@ -15,6 +15,7 @@
 | 生成 Lua 源码内部混淆/CFF | 已完成（轻量无 parser） | `LuaVmSourceObfuscator` 对 VM 入口调用做随机私有 dispatcher；它是源码级 staging，不宣称目标字节码级 CFF。|
 | 生成解释器目标字节码级 CFF | 未完成 | 后续需要目标版本 `luac`/loader/editor/validator 闭环；VM 报告以 `interpreter.bytecode.cff = not_implemented` 明示。|
 | LuaVmIr | 已移除 | 暂不引入额外 IR；当前 translator 直接生成私有 VM ISA。|
+| pass 插件化编排 | **已完成（2026-09-21）** | 内置 pass 以 `ObfuscationPassPlugin` 插件注册进 `ObfuscationRegistry`（:lua-obfuscation-pipeline）；执行顺序由 `runsAfter`/`runsBefore` 声明约束拓扑解析（稳定、与注册顺序无关，环/悬空引用显式异常）；宿主组合根显式装配 `builtIn()` 插件集，config null=禁用语义不变；详见 roadmap-kmp-progress.md 插件化章节。|
 | 单体 Gradle 工程拆分 | **已完成** | 13 个 KMP 库模块（platform/model/io/edit/analysis/api/五个 feature/:lua-vm/:lua-obfuscation-pipeline）+ 根（JVM 库入口/集成测试）+ 两个宿主模块（:lua-runtime-js、:lua-cli-native）。|
 | commonMain KMP 核心 | **已完成** | 全部核心与 feature 代码位于 commonMain；jvm/js/linuxX64 三 target。|
 | jvmMain | **已完成（JVM 适配面）** | platform.jvm 装配、chunk 文件 io 适配器与各模块 jvmTest。|
@@ -38,7 +39,8 @@
                                       [落地: jvm/js/linuxX64, maven-publish]
 :lua-bytecode-analysis    commonMain: CFG, data-flow, relocation, validation
                                       [落地: jvm/js/linuxX64, maven-publish]
-:lua-obfuscation-api      commonMain: pass/module contracts and reports
+:lua-obfuscation-api      commonMain: pass/module contracts, plugin contract
+                                      (ObfuscationPassPlugin/Context), reports
                                       [落地: jvm/js/linuxX64, maven-publish]
 :lua-obfuscation-strings  optional feature module   [落地: jvm/js/linuxX64, maven-publish, decoder 资产随模块]
 :lua-obfuscation-constants optional feature module  [落地: 同上]
@@ -47,8 +49,10 @@
 :lua-obfuscation-register optional feature module   [落地: 同上]
 :lua-vm                   optional feature module: translator, private ISA, runtime
                                       [落地: jvm/js/linuxX64, maven-publish; CapabilityReport 四分类契约]
-:lua-obfuscation-pipeline commonMain: LuaObfuscator 编排器 + LuaKeyRenaming +
-                                      LuaHostSeed + LuaVmPipeline 组合根
+:lua-obfuscation-pipeline commonMain: ObfuscationRegistry（插件 DI 注册表 + 顺序解析）
+                                      + LuaObfuscator 插件化编排器 + 内置插件集
+                                      （keys/debug-strip 插件 + DefaultObfuscationPasses）
+                                      + LuaHostSeed + LuaVmPipeline 组合根
                                       [落地: jvm/js/linuxX64, maven-publish]
 :lua-runtime-js           jsMain browser API and web UI
                                       [落地: js only 宿主（UMD + 静态页 + Worker），不发布]

@@ -787,3 +787,99 @@ apps/
 ```
 
 同步更新的物理路径引用：`settings.gradle.kts`（projectDir 重映射）、`tools/verify-kmp-purity.sh`（SCOPE）、`tools/generate-js-decoder-assets.py`（资产源与生成目标）、`.github/workflows/verify.yml`（native CLI smoke 的可执行路径）、`docs/vm-status-report.md`（现行代码出处）。历史章节的旧路径按当时状态保留。
+
+## 混淆 pass 插件化 + DI 注册（2026-09-21）
+
+目标：混淆 pass 必须是**插件**——互相不关心、互不依赖，通过 DI/注册表注册，
+执行顺序由管线根据声明约束**自行解析**，编排器（`LuaObfuscator`）不再硬编码序列。
+
+### 契约（:lua-obfuscation-api，commonMain，纯 Kotlin）
+
+| 类型 | 内容 |
+|---|---|
+| `ObfuscationPassPlugin` | `id`、`seedLabel: String?`、`runsAfter: Set<String>`、`runsBefore: Set<String>`、`isEnabled(config)`、`stampSeed(config, master)`、`apply(context)` |
+| `ObfuscationContext` | 继承 `LuaObfuscationModuleContext`（为此 open 化），携带 chunk + 解析后的配置 + masterSeed + `reportBuilder`；`config.modules` 扩展钩子收到的是同一对象（向上转型，零改动） |
+| `ObfuscationReportBuilder` | 9 个 pass 报告 section 的具名 typed 槽 + `strippedDebugInfo` + `build(modules)`；**兼作跨 pass 产物交换面** |
+| `SeededPassConfig<Self>` + `withDefaultSeed` | 8 个 seed 配置实现；`0 → passSeed(master, label)` 的 stamping 规则单点化（管线 seeding stage 统一驱动，每个插件声明自己的 seedLabel） |
+
+### 注册表与顺序解析（:lua-obfuscation-pipeline，装配层）
+
+`ObfuscationRegistry`：
+
+- `register(plugin)`：id 去重（同实例幂等；不同实例同 id → `IllegalArgumentException`）；
+  非 null `seedLabel` 必须 ∈ `SeedPolicy.DOMAINS`（注册时校验）。
+- `resolve()`：`runsAfter`/`runsBefore` 边上的**稳定拓扑序**，破平规则 = id 字典序；
+  悬空 id 引用 / 自引用 → `IllegalArgumentException`；环 → `IllegalStateException`
+  （消息列出参与 pass）。**同一约束集下注册顺序不同 → resolve 结果完全一致**
+  （`ObfuscationRegistryTest` 在 jvm/js/native 三平台钉死，含内置集乱序用例）。
+- `ObfuscationRegistry.builtIn()` = `DefaultObfuscationPasses.all()`（10 个内置插件）。
+
+设计偏离说明（相对任务草案"phase 枚举"）：插件只有关系约束（runsAfter/runsBefore），
+没有 phase 轴——phase 枚举本身就是第二种全局硬序列，与插件化目标相悖；内置 pass 的
+顺序耦合是一条链，关系约束 + id 破平即可唯一确定且可读。
+
+### pass × 插件归属表（feature 之间零 import，保持）
+
+| pass | 插件 object | 模块 | id | seedLabel | runsAfter |
+|---|---|---|---|---|---|
+| jump indirection | `LuaJumpIndirectionPass` | :lua-obfuscation-jumps | `jumps` | `jumps` | —（首位） |
+| string encryption | `LuaStringEncryptionPass` | :lua-obfuscation-strings | `strings` | `strings` | jumps |
+| register obfuscation (R) | `LuaRegisterObfuscationPass` | :lua-obfuscation-register | `registers` | `registers` | strings |
+| junk code | `LuaJunkCodePass` | :lua-obfuscation-jumps | `junk` | `junk` | registers |
+| block cloning | `LuaBlockCloningPass` | :lua-obfuscation-jumps | `clones` | `clones` | junk |
+| control flow flattening | `LuaControlFlowFlatteningPass` | :lua-obfuscation-cff | `cff` | `flatten` | strings, clones |
+| constant encryption (K) | `LuaConstantEncryptionPass` | :lua-obfuscation-constants | `constants` | `constants` | cff |
+| key renaming | `LuaKeyRenamingPass` | :lua-obfuscation-pipeline | `keys` | —（**不 stamp**，保留 seed=0 时的 legacy content seed；`SeedPolicy.DOMAINS` 亦无该域） | constants |
+| tail return | `LuaTailReturnPass` | :lua-obfuscation-jumps | `tail-return` | —（恒启用的语法修复） | keys |
+| debug strip | `LuaDebugStripPass` | :lua-obfuscation-pipeline | `debug-strip` | —（`stripDebugInfo` 门控） | tail-return |
+
+解析出的最终顺序 = 旧编排器硬编码顺序（jumps → strings → registers → junk →
+clones → cff → constants → keys → tail-return → debug-strip），逐字节一致。
+
+### 跨 pass 产物（互不知道对方，只认识 api 槽）
+
+- **strings → cff**：`StringEncryptionResult.stubPrototypes` / `decoderPrototypeIndex`
+  写入 reportBuilder；cff 插件从槽读取并自行推导 decoder 原型集合（推导逻辑从编排器
+  移入消费者插件）。
+- **cff → constants**：`ControlFlowFlatteningReport.prototypes`——Pass K 的本地
+  expansion（`CffConstantExpansion`）读写该槽，kget decoder 注入后的 pc 平移同样写回。
+- CFF `INPUT_REJECTED` 异常移入 cff 插件 apply 末尾（时序等价：flattening 报告产生后、
+  constants 之前抛出）。
+- `CffConstantExpansion` 从 :lua-obfuscation-cff **提升到 :lua-obfuscation-api**
+  （与 `CffTranslationValidator` 同一提升规则），constants 插件因此无需 import 兄弟
+  feature。其余类型（`CffPrototypeReport` 等）本就在 api。
+
+### 宿主装配（组合根决定哪些插件生效）
+
+| 宿主 | 装配点 |
+|---|---|
+| JVM 库入口 `cli/Main.kt` | `ObfuscationRegistry.builtIn()` 显式传入 `LuaObfuscator.obfuscate` |
+| :lua-cli-native `NativeCli.kt` | 同上 |
+| :lua-runtime-js `WebObfuscator.kt` | 同上；**约 150 行编排器镜像删除**，三端共用单一编排器 |
+
+选择"**注册全量 + 管线按 config null 跳过**"而非"按 null 挑选注册"：禁用语义单点
+定义在 `ObfuscationConfig`（null=禁用），宿主不会因漏映射而静默丢 pass；同时保留
+更强的路径——**不注册即彻底禁用**（`ObfuscationPluginPipelineTest` 钉死：注册表剔除
+junk 插件后，即使配置启用 junk 也不执行、不报告）。CLI flag 语义完全不变。
+WebObfuscator 侧解析一次 master seed 并 pin 回 config（非 null master 被原样返回），
+保证报告回显与单次熵抽取语义不变。
+
+### 兼容性
+
+- `LuaObfuscator.obfuscate(chunk, config)` 签名不变（registry 为带默认值的新第三参）；
+  根模块全部集成/差分测试零改动（默认即 builtIn）。
+- seed stamping 逐字段等价；keys 不 stamp 的历史行为保留并文档化。
+- `config.modules` BEFORE_CORE/AFTER_CORE 扩展钩子位置不变。
+- 唯一语义放宽：CFF 关闭时若 Pass K 注入了 kget decoder，旧代码会在 pc 平移处 NPE
+  （`flattening!!`），新代码跳过平移（原本就是崩溃路径，非可观察输出）。
+
+### 测试
+
+- 新增 `ObfuscationRegistryTest`（pipeline commonTest，jvm/js/native 自动三跑）：
+  内置集规范顺序、注册顺序无关性（含 4 种乱序）、runsBefore 尊重、环、自引用、悬空
+  引用（runsAfter/runsBefore 两向）、重复 id、seed domain 校验。
+- 新增 `ObfuscationPluginPipelineTest`（pipeline jvmTest，flow_54 fixture）：
+  注册顺序打乱 → 输出逐字节一致（固定 seed）；未注册即禁用；全栈 9 个 pass section
+  报告完整性 + strip 标志；strings→cff / strings+cff+constants 槽流动配对。
+- 既有 `SingleModuleIsolationTest`（8 用例）、`PipelineContractTest`（三平台）、
+  差分矩阵 job 全部零改动通过。
