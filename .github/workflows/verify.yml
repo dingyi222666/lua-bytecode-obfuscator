@@ -72,6 +72,13 @@ jobs:
           # The shipped page must be the Compose one loading the pinned module.
           test -f "$DIST/index.html" || { echo "missing index.html in $DIST"; exit 1; }
           grep -q composeApp "$DIST/index.html" || { echo "index.html does not load the composeApp module"; exit 1; }
+          # The entry is a webpack UMD bundle: its runtime auto-detects
+          # publicPath from document.currentScript, which exists ONLY for
+          # classic script tags. Dynamic import()/type=module makes detection
+          # throw "Automatic publicPath is not supported in this browser", so
+          # the page MUST load the entry via a plain classic <script src>.
+          grep -qE '<script src="\./composeApp\.js"></script>' "$DIST/index.html" || { echo "index.html must load composeApp.js via a classic script tag (see the publicPath note in apps/lua-web-compose/src/wasmJsMain/resources/index.html)"; exit 1; }
+          ! grep -q 'await import' "$DIST/index.html" || { echo "index.html must not dynamic-import the entry (publicPath regression)"; exit 1; }
           echo "compose web dist ok: $DIST"
 
       - name: Upload compose web dist (web-compose-dist)

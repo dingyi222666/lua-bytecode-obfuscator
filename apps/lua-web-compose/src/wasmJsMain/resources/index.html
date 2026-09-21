@@ -13,23 +13,24 @@
 </style>
 </head>
 <body>
-<script type="module">
-  // The production dist entry is pinned to composeApp.js
-  // (commonWebpackConfig.outputFileName in build.gradle.kts); fall back to
-  // the .mjs spelling of non-webpack layouts so this page works with either
-  // distribution shape.
-  try {
-    await import("./composeApp.js");
-  } catch (cause) {
-    try {
-      await import("./composeApp.mjs");
-    } catch (fallbackCause) {
-      const message = document.createElement("pre");
-      message.style.cssText = "white-space:pre-wrap;padding:1rem;font-family:system-ui;";
-      message.textContent = "failed to load the application module:\n" + cause + "\n" + fallbackCause;
-      document.body.appendChild(message);
-    }
-  }
+<!-- The production dist entry is pinned to composeApp.js
+     (commonWebpackConfig.outputFileName in build.gradle.kts). It is a
+     webpack UMD bundle whose runtime auto-detects publicPath from
+     document.currentScript — that variable only exists for CLASSIC script
+     tags, never inside dynamic import()/type=module, where the detection
+     throws "Automatic publicPath is not supported in this browser". So the
+     entry MUST stay a plain classic <script src>: it executes main() and
+     boots ComposeViewport directly. -->
+<script src="./composeApp.js"></script>
+<script>
+  // Load-failure surface: if the bundle throws or never boots, say so on the
+  // page instead of leaving a blank canvas.
+  window.addEventListener("error", function (event) {
+    var message = document.createElement("pre");
+    message.style.cssText = "white-space:pre-wrap;padding:1rem;font-family:system-ui;color:#b3261e;";
+    message.textContent = "failed to boot the application:\n" + (event.message || event.error);
+    document.body.appendChild(message);
+  });
 </script>
 </body>
 </html>
