@@ -62,6 +62,10 @@ kotlin {
             implementation(project(":lua-obfuscation-jumps"))
             implementation(project(":lua-obfuscation-cff"))
             implementation(project(":lua-obfuscation-register"))
+            // The sunk orchestrator + plugin registry: WebObfuscator assembles
+            // ObfuscationRegistry.builtIn() and calls LuaObfuscator directly
+            // (the former orchestrator mirror is gone).
+            implementation(project(":lua-obfuscation-pipeline"))
             implementation(project(":lua-vm"))
         }
         jsTest.dependencies {
