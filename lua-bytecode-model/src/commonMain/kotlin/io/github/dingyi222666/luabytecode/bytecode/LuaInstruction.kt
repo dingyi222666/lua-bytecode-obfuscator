@@ -199,7 +199,7 @@ data class LuaInstruction(val raw: Int, val version: LuaBytecodeVersion) {
         LuaOpcodeMode.ASBX -> "A=$a sBx=$sbx"
         LuaOpcodeMode.AX -> "Ax=$ax"
         LuaOpcodeMode.SJ -> "sJ=$sj"
-        null -> "raw=0x%08X".format(raw)
+        null -> "raw=0x" + instructionHex(raw)
     }
 
     /** Raw bit fields, useful when debugging the decoder itself. */

@@ -104,6 +104,8 @@ enum class LuaBytecodeVersion(
 
         /** Comma separated list of the supported version bytes, for error messages. */
         fun supportedVersionsText(): String =
-            entries.joinToString(", ") { "0x%02X (%s)".format(it.versionByte, it.displayName) }
+            entries.joinToString(", ") {
+                "0x" + versionByteHex(it.versionByte) + " (" + it.displayName + ")"
+            }
     }
 }
