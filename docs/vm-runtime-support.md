@@ -23,11 +23,22 @@
 `LuaVmSemanticBridgeTest` 包含 14 组真实差分测试，种子为 0、11、42、55。按特性运行官方 Lua 5.3.6、5.4.6、5.5.1；缺失工具链会明确标记跳过。覆盖多层 VM/宿主调用、可 yield 元方法、错误对象身份、关闭顺序、受保护元表、nil/false、超过静态栈大小的动态结果、5.3 人工扩展 SETLIST 与 5.4/5.5 原生 EXTRAARG。
 
 ```sh
-JAVA_HOME=/path/to/jdk17 ./gradlew test installDist --console=plain
-sh tools/verify-vm.sh
+# 现行写法（application 插件已移除；详情见下与 docs/vm-status-report.md）：
+sh tools/run-differential-matrix.sh      # 探测环境后跑全套差分（含 VM 矩阵）
+# 或仅 VM 矩阵，直接以 native CLI 作为工具：
+./gradlew :lua-cli-native:linkReleaseExecutableNative
+OBFUSCATOR_TOOL="$PWD/lua-cli-native/build/bin/native/releaseExecutable/lua-cli-native.kexe" \
+  sh tools/verify-vm.sh
 ```
 
 CLI 既有矩阵当前为 **31 identical / 23 refused / 0 failed**，最低通过数已提升到 31。拒绝项不记为语义支持，`--vm-out` 拒绝时退出码为 3。
+
+> 终验后的工具获取方式已变（`application` 插件移除，native CLI 是唯一默认
+> CLI）：`installDist` 不再存在。CI 经 `verify.yml` 的 `differential-matrix`
+> job 探测三版本解释器后以 `OBFUSCATOR_TOOL` shim 运行 `tools/verify-all.sh`；
+> 手动复现用 `sh tools/run-differential-matrix.sh`，或
+> `OBFUSCATOR_TOOL=<native kexe|JVM shim> sh tools/verify-vm.sh`。
+> 前置条件、拒绝原因与完整证据链见 `docs/vm-status-report.md`。
 
 ## 仍有的边界
 

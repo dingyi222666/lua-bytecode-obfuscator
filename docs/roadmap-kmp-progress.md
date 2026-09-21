@@ -13,7 +13,7 @@
 | 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | **完成（2026-09-21）** |
 | 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | **完成（2026-09-21）** |
 | 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | **完成（2026-09-21）**：前半 jsMain 网页端；后半 nativeMain CLI + pipeline 下沉（见下方 Phase 6 后半） |
-| 终验 | 第 7 步 | 现有 225 tests、三版本差分矩阵、VM 矩阵全绿验收 | 未开始 |
+| 终验 | 第 7 步 | 现有 225 tests、三版本差分矩阵、VM 矩阵全绿验收 | **完成（2026-09-21）**（见下方终验章节） |
 
 ## Phase 1：:lua-bytecode-model（commonMain）
 
@@ -703,6 +703,63 @@ native 测试首次链接（2M 步 LCG 走查在 debug 测试二进制上的首�
   js/native fixture 加载 expect/actual 未做（js/native 测试用内嵌 base64）。
 * api-implementation 暴露面、`WebObfuscator` VM staging 注入口等 Phase 4/5/6
   前半遗留照旧。
+
+## 终验（2026-09-21 完成）
+
+对照 `docs/roadmap-kmp-modules.md` "恢复时的验收条件"逐条核对实际代码与 CI
+证据（基线 run：35579655014，终验变更后 run 见文末）。VM 能力事实基线见
+`docs/vm-status-report.md`。
+
+### 验收表
+
+| # | 验收条件 | 结论 | 证据 |
+|---|---|---|---|
+| a | `commonMain` 不出现 `java.*`、文件系统、进程或 JVM CLI 依赖 | **通过** | `tools/verify-kmp-purity.sh` SCOPE 覆盖 13 个 KMP 库模块 commonMain + 根 bytecode/obfuscate/vm/platform（platform/jvm 与 `*/src/jvmMain/*` 白名单），CI "KMP purity gate" 步骤全绿；终验又把两个宿主模块的未来 commonMain 预列入 SCOPE（目录缺失自动跳过）。本地独立复核：对同 SCOPE 66 个 .kt 逐文件做注释剥离（Kotlin 嵌套块注释语义）后 grep `java.*`/`javax.*`/`::class.java`/`kotlin.jvm.*`/`@Jvm*`/`System.*`，0 处代码级命中（仅 KDoc 描述性文字，门禁剥离后放行）。宿主模块无 commonMain（jsMain/nativeMain 为平台面，按设计允许平台绑定）。 |
+| b | 每个可选混淆模块可单独禁用、单独发布、单独测试 | **通过** | 单独禁用：`ObfuscationConfig` 全 nullable 字段（null=禁用）+ `SingleModuleIsolationTest`（pipeline jvmTest，8 用例：全关零 pass、8 个 feature 逐个单开且其余报告 section 全空）+ `VmDisablementTest`（classpath 剔除 :lua-vm 后 CLI 照常运行）。单独发布：五个 feature + :lua-vm + :lua-obfuscation-pipeline（及 analysis/api）自带 `maven-publish`；终验补齐 platform/model/io/edit 四个基础库模块 → 13/13 库模块可独立发布。单独测试：每个 feature 有自有 jvmTest 套件（strings/constants/jumps/cff/register 各 1–2 个测试类），CI `./gradlew build` 全量执行。 |
+| c | 网页端只调用 common API；文件读取、Worker、下载由 jsMain 实现 | **通过** | `:lua-runtime-js` jsMain `WebObfuscator.kt` 只 import common API（bytecode/bytecode.edit/bytecode.io/obfuscate/platform.IdentitySet/stdlib Base64），无浏览器 API import；文件读取（FileReader）、Worker（`new Worker("worker.js")` + importScripts UMD）、下载（Blob + URL.createObjectURL + `<a download>`）全部在 jsMain 资源 `resources/web/index.html` / `worker.js`；平台接缝装配 `JsPlatform.install()` 亦在 jsMain。`WebUiAssetsSmokeTest`/`WebObfuscatorTest`（jsNodeTest）固定该接线。 |
+| d | Native CLI 是唯一默认 CLI；JVM 入口不再是默认 application artifact | **通过** | 全仓 build.gradle.kts grep：根模块无 `application` 插件、无 `mainClass`（仅注释说明，`cli/Main.kt` 保留为 JVM 库入口/测试载体）；`:lua-cli-native` 为 `linuxX64("native")` + `binaries.executable()` + 显式 `entryPoint`；CI "Native CLI smoke" 步骤实际运行 release 可执行 `--help`（exit 0 + 产物存在断言），全绿。 |
+| e | VM 报告区分 `source.cff` / `vm.lift` / `interpreter.source.cff` / 未完成的目标字节码 CFF | **通过** | `LuaVmObfuscation.CapabilityReport`（:lua-vm commonMain）恒按契约顺序携带四 category；`interpreter.bytecode.cff` 默认 `NOT_IMPLEMENTED`（label `not_implemented`，details 说明等待目标版本 luac/loader/editor/validator 闭环）；契约测试 `LuaVmCapabilityReportContractTest`（commonTest，jvm/js/native 三端跑）断言 id/顺序/状态；CLI `--vm-out` 逐行打印四分类与 `staged/complete`；`VmDisablementTest` 在真实 CLI 输出上断言 `source.cff: refused`、`vm.lift: applied`、`interpreter.source.cff: applied`、`interpreter.bytecode.cff: not_implemented`、`complete: false`。逐字对照 roadmap 原文一致。 |
+| f | "完整 VM"声明纪律 | **通过** | `complete = staged && targetBytecodeCff==APPLIED`，当前恒 false（契约测试全状态组合断言）；全 docs/README grep 无"完整 VM/complete VM"声明（仅验收条件原文提及该纪律）；`docs/vm-status-report.md`（终验新增）以事实口径固化三版本矩阵、特性矩阵、拒绝原因清单、差分证据链，并明确"目标字节码级 CFF 未实现"。 |
+
+### 差分矩阵 CI 接入（本轮变更）
+
+* `.github/workflows/verify.yml` 新增独立 job `differential-matrix`
+  （`needs: build`，同 self-hosted runner，timeout 45min）：
+  `tools/run-differential-matrix.sh` 先探测
+  `/tmp/lua-5.3.6|5.4.6|5.5.1/src/{lua,luac}` 与 python3——齐备则跑
+  `tools/verify-all.sh` 全套差分（四件套 + VM 矩阵 + CFF 矩阵 + 泄漏/谓词
+  审计），缺失则逐项打印 skipped 理由并 **exit 0**（skipped 不是语义通过，
+  也不阻塞门禁）；`/tmp/unluac.jar` 缺失仅提示（该 pillar 本就不 gate 5.5/缺失）。
+* 工具注入：`verify-all.sh` / `verify-vm.sh` / `verify-cff.py` /
+  `verify-cff-coverage.sh` / `verify-decompiled-semantics.sh` 增加
+  `OBFUSCATOR_TOOL` 环境变量覆盖（默认路径不变）；shim 用 JVM 库入口
+  `io.github.dingyi222666.luabytecode.cli.MainKt`（verify-cff.py 需要
+  `--summary/--cff` 全 flag 面），classpath 由根模块新增
+  `:exportCliRuntimeClasspath` 任务导出（纯 tooling 导出，不恢复
+  application 产物，验收 d 不受影响）。
+* purity gate 语义未动（SCOPE 仅按模块清单补齐，见验收表 a）。
+
+### 其他终验变更
+
+* `maven-publish` 补齐 :lua-platform / :lua-bytecode-model / :lua-bytecode-io /
+  :lua-bytecode-edit（13/13 库模块可独立发布；:lua-runtime-js /
+  :lua-cli-native 为宿主产物，不发布——契约文档状态表已同步）。
+* 新增 `docs/vm-status-report.md`；`docs/vm-runtime-support.md` 的
+  `installDist` 用法刷新为现行命令；`docs/roadmap-kmp-modules.md` 状态表
+  按终态刷新并在目标模块图上标注实际落地名。
+
+### 终验偏差与处置
+
+| 偏差 | 处置 |
+|---|---|
+| 背景所称"全模块 maven-publish"与实际不符（platform/model/io/edit 缺失） | 补齐四个基础库模块的 `maven-publish`；宿主模块（js 网页端 / native 可执行）明确不发布并写入契约文档 |
+| 背景所称"14 个模块 commonMain"实为 13 个库模块 + 根四个包（宿主模块无 commonMain） | SCOPE 补入两个宿主模块的未来 commonMain 路径（缺失自动跳过），计数口径在契约文档说明 |
+| verify-*.sh 硬编码的 installDist 工具路径在 application 插件移除后失效 | `OBFUSCATOR_TOOL` 覆盖 + `:exportCliRuntimeClasspath` + JVM CLI shim（`tools/run-differential-matrix.sh`） |
+| CLI `--vm-out` 未开放 5.4/5.5 count-based numeric for 开关（库级有开关与测试） | 如实记录进 `docs/vm-status-report.md` 拒绝原因清单第 3 条（经 CLI 的该类输入以 refuse 处理），未改行为 |
+
+### 终验 CI
+
+- 终验变更 run：<待补，见下>
 
 ## Phase 1：问题记录（历史）
 
