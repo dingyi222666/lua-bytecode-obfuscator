@@ -52,13 +52,14 @@ application {
 
 // The CLI runtime classpath, handed to VmDisablementTest (it spawns a fresh JVM
 // to prove the disablement contract; Gradle test workers do not expose a usable
-// java.class.path for the application under test).
-val cliRuntimeClasspath = sourceSets["main"].runtimeClasspath.asPath
+// java.class.path for the application under test). Keep it lazy: resolving the
+// path eagerly would realize the Kotlin compile tasks before jvmToolchain runs.
+val cliRuntimeClasspath = sourceSets["main"].runtimeClasspath
 
 tasks.test {
     useJUnitPlatform()
     doFirst {
-        file("$buildDir/cli-test-classpath.txt").writeText(cliRuntimeClasspath)
+        file("$buildDir/cli-test-classpath.txt").writeText(cliRuntimeClasspath.asPath)
     }
 }
 

@@ -8,16 +8,16 @@
 |---|---|---|
 | Lua 5.3/5.4/5.5 字节码模型 | 已完成（JVM 版） | 读取、编辑、写回和版本字段已存在。|
 | VM translator / 加密程序 / 生成解释器 | 部分完成 | 已有多版本能力和拒绝机制；仍有 ISA 字段宽度、调试/GC 观察等边界。|
-| 输入 chunk → 现有混淆管线 → VM lift | 已接入，按原型报告覆盖 | `Options.inputObfuscation` 会复制输入并调用 `LuaObfuscator`；已修复混淆注入 upvalue 未初始化导致的 VM 崩溃。完整 AGGRESSIVE 仍以实际 translator 接受/拒绝报告为准。|
+| 输入 chunk → 现有混淆管线 → VM lift | 已接入，按原型报告覆盖 | 输入混淆/CFF 经 `LuaVmPipeline` 以 stage 函数注入 `LuaVmObfuscation.Options`（:lua-vm 不依赖任何 feature）；已修复混淆注入 upvalue 未初始化导致的 VM 崩溃。完整 AGGRESSIVE 仍以实际 translator 接受/拒绝报告为准。|
 | 生成 Lua 源码内部混淆/CFF | 已完成（轻量无 parser） | `LuaVmSourceObfuscator` 对 VM 入口调用做随机私有 dispatcher；它是源码级 staging，不宣称目标字节码级 CFF。|
-| 生成解释器目标字节码级 CFF | 未完成 | 后续需要目标版本 `luac`/loader/editor/validator 闭环。|
+| 生成解释器目标字节码级 CFF | 未完成 | 后续需要目标版本 `luac`/loader/editor/validator 闭环；VM 报告以 `interpreter.bytecode.cff = not_implemented` 明示。|
 | LuaVmIr | 已移除 | 暂不引入额外 IR；当前 translator 直接生成私有 VM ISA。|
-| 单体 Gradle 工程拆分 | 未完成 | 现有源码仍在一个 JVM module。|
-| commonMain KMP 核心 | 未完成 | 暂无 KMP source set。|
-| jvmMain | 未完成 | 后续承载 JVM 文件、进程和测试适配。|
+| 单体 Gradle 工程拆分 | **已完成** | 12 个 KMP 模块（platform/model/io/edit/analysis/api/五个 feature/:lua-vm）+ 根（编排器/CLI）。|
+| commonMain KMP 核心 | **已完成** | 全部核心与 feature 代码位于 commonMain；尚只有 jvm target。|
+| jvmMain | **已完成（JVM 适配面）** | platform.jvm 装配、chunk 文件 io 适配器与各模块 jvmTest。|
 | jsMain 网页加密 | 未完成 | 后续提供浏览器 UI、Worker、版本/特性选择和下载。|
 | nativeMain / Native CLI | 未完成 | 后续只发布 Native CLI，不再默认发布 JVM CLI。|
-| 可选特性插件发布 | 部分完成 | 现有 `LuaObfuscationModule` 是 API 扩展点，但还没有独立 Gradle artifact。|
+| 可选特性插件发布 | 部分完成 | 各 feature（含 :lua-vm）已带 `maven-publish`；api/implementation 暴露面尚未梳理。|
 
 ## 目标模块图
 

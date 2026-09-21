@@ -11,7 +11,7 @@
 | 2 | 第 2 步 | `java.io` / `java.nio` / `java.util.Random` / `MessageDigest` 等替换为 expect/actual 或平台接口 | **完成（2026-09-21）** |
 | 3 | 第 3 步 | reader/writer 与 editor DSL 拆成独立模块（保留包名兼容 facade） | **完成（2026-09-21）** |
 | 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | **完成（2026-09-21）** |
-| 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | 未开始 |
+| 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | **完成（2026-09-21）** |
 | 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | 未开始 |
 | 终验 | 第 7 步 | 现有 225 tests、三版本差分矩阵、VM 矩阵全绿验收 | 未开始 |
 
@@ -316,6 +316,115 @@ services 注册 + junit-platform.properties（与根同机制）+ bytecode/lua/r
 - TestFixtures.kt 多副本（7 份）与 fixture 资源多副本继续并存；后续可抽 `shared-test-fixtures` 模块收敛。
 - 根模块仍持有 LuaKeyRenaming/LuaHostSeed/编排器；若 Phase 5 拆 `:lua-vm`，二者可随之下沉。
 - `SingleModuleIsolationTest` 目前只证报告层隔离；字节级"其他 pass 未触碰"可后续加 dump diff 断言。
+
+## Phase 5：:lua-vm 可选模块 + VM 报告四分类（2026-09-21 完成）
+
+### 模块图现状
+
+```text
+:lua-platform             commonMain: platform.{Hex,IdentityCollections,Md5,ObfRandom,PlatformIo}
+                          jvmMain:    platform.jvm.JvmPlatform
+:lua-bytecode-model       commonMain: 11 文件全量模型
+:lua-bytecode-io          commonMain: bytecode.io 三件；jvmMain: platform.jvm.LuaChunkIoJvm
+:lua-bytecode-edit        commonMain: bytecode.edit 四文件 + bytecode.analysis.{LuaCodeRelocation,LuaLineInfo}
+                          jvmMain:    platform.jvm.editChunkFile
+:lua-bytecode-analysis    commonMain: bytecode.analysis.{LuaConstantReferences,LuaDataFlow}
+                                    + bytecode.print.LuaChunkPrinter + bytecode.support.LuaRegisterAnalysis
+:lua-obfuscation-api      commonMain: 契约层（扩展点/pipeline 配置/报告/SeedPolicy/共享 helper）
+:lua-obfuscation-strings  / -constants / -jumps / -cff / -register   （五个 feature，同 Phase 4）
+:lua-vm                   commonMain: vm/ 八文件（LuaVmInterpreter、LuaVmInterpreterGenerator、
+                                      LuaVmObfuscation、LuaVmProgram、LuaVmRuntime、LuaVmSourceErrors、
+                                      LuaVmSourceObfuscator、LuaVmTranslator），包名不变
+                          commonTest: LuaVmCapabilityReportContractTest（纯结构契约）
+                          jvmTest:    12 个迁移测试 + CapabilityReport 测试 + VmTestChunks
+                                      + InstallJvmPlatformExtension（第 6 份副本）
+根模块（frontends/编排）    main: LuaObfuscator（编排器）、LuaKeyRenaming、LuaHostSeed、
+                                vm/LuaVmPipeline（组合根）、cli/、decompile/、B4*、platform.jvm 已在 :lua-platform
+```
+
+依赖方向无环：`platform ← model ← io ← edit ← analysis ← api ← {五个 feature} ← 根`，且
+`:lua-vm` 只依赖 `platform / model / analysis / api`（commonMain），**不依赖任何其他 feature、
+也不依赖根**；jvmTest 额外依赖 io（fixture 加载 + load/dump 适配器）与 edit（semantic bridge 的
+edit DSL）。全部十二个 KMP 模块 `kotlin("multiplatform")` + `jvm()` + jvmToolchain(17) +
+`maven-publish`。
+
+### 关键决策
+
+1. **stage 函数打断 vm→编排器/feature 依赖**：`LuaVmObfuscation` 原本直接调用 `LuaObfuscator`
+   （根）与 `LuaControlFlowFlattening`（:lua-obfuscation-cff）。改为 `Options.inputObfuscation:
+   InputObfuscationStage?` 与 `Options.sourceCff: SourceCffStage?` 两个 fun interface，由宿主注入
+   执行器；根模块新增组合根 `vm/LuaVmPipeline`（`inputObfuscation(config)` / `sourceCff(config)` /
+   严格入口 `obfuscated(...)`，即原 `LuaVmObfuscation.obfuscated`）。文件名跨模块唯一，无门面遮蔽。
+   原 Options 字段（ObfuscationConfig / ControlFlowFlatteningConfig）类型改为 stage；仓库内无调用方
+   传过这两个字段，零行为差。
+2. **报告四分类（契约验收）**：`LuaVmObfuscation.CapabilityReport` 现在恒有四个 categories（按契约顺序）：
+   - `source.cff` — 输入 chunk 的源码级/字节码级 CFF（现有混淆管线报告，`cffReport` 内嵌）；
+   - `vm.lift` — chunk → 私有 VM ISA（加密程序 + 加密常量池）；
+   - `interpreter.source.cff` — 生成 Lua 解释器**源码**的 staging 混淆（LuaVmSourceObfuscator，无 parser）；
+   - `interpreter.bytecode.cff` — 生成解释器的**目标字节码级 CFF**，显式
+     `NOT_IMPLEMENTED`（label `not_implemented`），details 说明等待目标版本
+     luac/loader/editor/validator 闭环。
+   另有 `inputObfuscation` 作为 staging 上下文条目（不属于四分类）。语义 honesty：
+   `staged` = 三个已实现层全部 applied；`complete` = `staged && targetBytecodeCff==APPLIED`，
+   因此当前**恒为 false**（commonTest 逐状态组合断言）。`CapabilityStatus` 增加
+   `label`（applied/refused/not_implemented）供打印与测试。
+3. **CLI 报告输出**：`--vm-out` 改走 `emitModuleDetailed`，逐行打印四个 categories
+   （`<id>: <label> - <details>`）与 `staged/complete` 汇总行；拒绝路径（exit 3）不变。
+4. **可禁用证明**：新增根测试 `VmDisablementTest`（VM 不是 ObfuscationConfig 字段，故不进
+   SingleModuleIsolationTest）：(a) 从 CLI 运行时 classpath 剔除全部 `lua-vm` 条目后 CLI 照常
+   工作 → `--vm-out` 之外零 VM 类加载路径；(b) 全 classpath `--vm-out` 断言四个分类的状态行与
+   `complete: false`。测试任务把 main runtimeClasspath 写入 `build/cli-test-classpath.txt`
+   （Gradle test worker 拿不到被测应用的 java.class.path）。
+5. **LuaHostSeed 结论：留在根模块，不迁**。评估结果：vm 的 Kotlin 侧不消费它（运行时
+   `#tostring(_VERSION)` 推导完全发生在生成 Lua driver 内），jumps 也未实际委托调用
+   （KDoc 所述委托未落地）；当前零主代码消费者。等未来 vm/feature 真正需要 Kotlin 侧
+   host-seed 发射时，再按"双消费者提升"规则升入 api（届时与 LuaEnvLookup/LcgSpec 同层）。
+6. **LuaKeyRenaming 结论：留在根模块**。它是与编排器同层的完整 pass（唯一消费者是
+   LuaObfuscator），进 api 会破坏契约层角色，独立 `:lua-obfuscation-keys` 是发布需求出现时
+   （Phase 6 前）的自然下一步，不属于本阶段。
+
+### 测试迁移表
+
+| 测试 | 归属 | 说明 |
+|---|---|---|
+| LuaVmArithmeticTest / LuaVmClosureTest / LuaVmProgramTest / LuaVmVarargTest | :lua-vm jvmTest | 纯 JVM VM 内核测试，零改动 |
+| LuaVmTranslatorTest / LuaVmB2DebugTest / LuaVmCountLoopTest / LuaVmCountLoopGeneratedTest / LuaVmNumericForTest / LuaVmGeneratedInterpreterTest | :lua-vm jvmTest | fixture 加载改 classpath（VmTestChunks.loadVmFixture），/tmp-lua 门控保留 |
+| LuaVmSemanticBridgeTest | :lua-vm jvmTest | 原样（assumeTrue 需要官方 lua 二进制） |
+| LuaVmCalibTest | :lua-vm jvmTest | 原样保留 assumeTrue 跳过逻辑 |
+| LuaVmCapabilityReportContractTest（新增） | :lua-vm commonTest | 四分类 id/顺序、target NOT_IMPLEMENTED、complete 恒 false（全状态组合） |
+| LuaVmCapabilityReportTest（新增） | :lua-vm jvmTest | 真实 emission 的四分类语义 + stub stage 的 plumbing + requireSourceCff 拒绝 |
+| LuaVmPipelineTest（新增） | 根 | 真实 LuaObfuscator 经 stage 注入 + 严格入口拒绝 |
+| VmDisablementTest（新增） | 根 | classpath 无 :lua-vm 可运行 + --vm-out 四分类输出断言 |
+
+fixture 复制子集：`real/ctor/` 七个 luac（c01_numericfor_53、c05_generic_ipairs_53/54、
+c10_ifchain_53、c14_numericfor_print_53/54/55）落入 `:lua-vm` jvmTest resources（副本数照旧有意并存）。
+根测试 TestFixtures 仍为 9 份，vm 侧未使用 TestFixtures（专用 VmTestChunks.kt）。
+
+### 踩坑记录
+
+1. `ClassLoader.getResourceAsStream("/real/...")` **不剥离前导斜杠**（`Class.getResourceAsStream`
+   才剥离），首跑 10 个 fixture 型测试全数 IllegalStateException（run 35564675035）；改走
+   Class 变体。
+2. commonTest 文件用了 `@Test` 却只 import 断言函数 → `Unresolved reference 'Test'`
+   （run 35565000722）。注意 `git add -A` 把报告重构与该测试一并带进了 fix 提交（aabc4b4），
+   提交说明低估了内容，实际为"fixture 修复 + 报告四分类 + 契约测试"合集。
+3. gradle 测试 worker 的 `java.class.path` 不可用于被测应用 → 以文件导出 runtimeClasspath。
+
+### Phase 5 验证
+
+- stage 依赖打断：run 35564319038（绿）
+- `:lua-vm` 模块抽取（8 文件 git mv + build/settings/purity SCOPE）：run 35564438008（绿）
+- 测试迁移：run 35564675035（红，Classloader 斜杠）
+- 修复 + 报告四分类 + 契约测试：run 35565000722（红，缺 import）→ **35565192672（绿）**
+- 可禁用证明：run 35565541142
+
+### Phase 5 遗留项
+
+- `interpreter.bytecode.cff` 仍未实现（roadmap 第 6 步之后的目标闭环：目标版本 luac/loader/editor/validator）。
+- 真实 AGGRESSIVE 管线 → VM lift 的端到端差分仍由 tools/verify-vm.sh 承担，CI 内只覆盖
+  无 staging 与轻量 staging 路径（translator 对重混淆输入的接受/拒绝以报告为准）。
+- `Options.inputObfuscation` 类型变更为 stage（breaking，pre-1.0 私有仓库，无仓库内调用方）。
+- TestFixtures 多副本 / api-implementation 暴露面 / js-native fixture expect/actual 等 Phase 4 遗留照旧。
 
 ## Phase 1：问题记录（历史）
 
