@@ -31,4 +31,8 @@ include(":lua-obfuscation-jumps")
 include(":lua-obfuscation-cff")
 include(":lua-obfuscation-register")
 include(":lua-vm")
+// Web runtime (roadmap step 6): js-only assembly of the common pipeline with
+// the platform seam implementations, the bundled decoder assets as committed
+// base64 constants and the minimal static web UI.
+include(":lua-runtime-js")
 
