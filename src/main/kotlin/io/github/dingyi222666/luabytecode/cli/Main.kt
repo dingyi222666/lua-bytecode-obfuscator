@@ -17,6 +17,7 @@ import io.github.dingyi222666.luabytecode.obfuscate.JunkCodeConfig
 import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscator
 import io.github.dingyi222666.luabytecode.obfuscate.OpaquePredicate
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
+import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationRegistry
 import io.github.dingyi222666.luabytecode.obfuscate.StringEncryptionConfig
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.platform.Platform
@@ -383,7 +384,11 @@ fun main(args: Array<String>) {
             presetConfig != null -> presetConfig.copy(masterSeed = masterSeed)
             else -> flagConfig
         }
-        val obfuscationReport = obfuscation?.let { LuaObfuscator.obfuscate(chunk, it) }
+        // Composition root: assemble the default built-in pass plugin set. The
+        // pipeline skips every pass whose config section is null, so the CLI
+        // flag semantics ("null disables the pass") are unchanged.
+        val obfuscationRegistry = ObfuscationRegistry.builtIn()
+        val obfuscationReport = obfuscation?.let { LuaObfuscator.obfuscate(chunk, it, obfuscationRegistry) }
         obfuscationReport?.let { println("obfuscated: $it") }
         obfuscationReport?.controlFlowFlattening?.let { report ->
             println("CFF actual features: ${report.appliedFeatures.joinToString()}")

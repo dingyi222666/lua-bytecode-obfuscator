@@ -1,34 +1,21 @@
 // The web public API of the obfuscation pipeline (roadmap step 6 acceptance:
 // "the web client only calls the common API"). Everything here is jsMain of
 // the web runtime and touches ONLY the common APIs of the library modules —
-// bytes come in as base64, a report and bytes go out, mirroring the public
-// subset of the JVM frontends' orchestration.
+// bytes come in as base64, a report and bytes go out.
+//
+// Since the plugin-based orchestration (ObfuscationRegistry) the web runtime
+// no longer mirrors the pass sequence: it assembles the same built-in plugin
+// set as the JVM and native hosts and lets :lua-obfuscation-pipeline run it.
+// The single orchestrator keeps the three hosts byte-compatible.
 package io.github.dingyi222666.luabytecode.runtime.js
 
-import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
-import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
-import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
-import io.github.dingyi222666.luabytecode.bytecode.edit.clearDebugInfo
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkWriter
-import io.github.dingyi222666.luabytecode.obfuscate.CffConstantExpansion
-import io.github.dingyi222666.luabytecode.obfuscate.CffPrototypeReport
+import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscator
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
-import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationPhase
-import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationReport
+import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationRegistry
 import io.github.dingyi222666.luabytecode.obfuscate.SeedPolicy
-import io.github.dingyi222666.luabytecode.obfuscate.LuaBlockCloning
-import io.github.dingyi222666.luabytecode.obfuscate.LuaConstantEncryptor
-import io.github.dingyi222666.luabytecode.obfuscate.LuaControlFlowFlattening
-import io.github.dingyi222666.luabytecode.obfuscate.LuaJunkCode
-import io.github.dingyi222666.luabytecode.obfuscate.LuaJumpIndirection
-import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscationModuleContext
-import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscationModuleResult
-import io.github.dingyi222666.luabytecode.obfuscate.LuaRegisterObfuscator
-import io.github.dingyi222666.luabytecode.obfuscate.LuaStringEncryptor
-import io.github.dingyi222666.luabytecode.obfuscate.LuaTailReturn
-import io.github.dingyi222666.luabytecode.platform.IdentitySet
 import kotlin.io.encoding.Base64
 
 /**
@@ -64,11 +51,14 @@ data class WebObfuscationResultJs(
 
 /**
  * Obfuscates a precompiled Lua chunk (`luac` output, base64 encoded) with the
- * common pipeline composed exactly like the JVM orchestrator's public subset:
- * seed stamping, before/after extension phases, the feature passes in the
- * pipeline's fixed order, tail-return repair and optional debug stripping.
+ * common pipeline: the built-in pass plugins run in the registry's resolved
+ * order (jumps → strings → registers → junk → clones → cff → constants →
+ * keys → tail-return → debug-strip), the string / constant decoder assets
+ * arrive through the [JsPlatform] seam.
  *
- * The root-only table-field key renaming pass is not part of the web surface.
+ * The presets never set key renaming, so the pass stays off here — same
+ * output as before the plugin refactor (which needed a hand-maintained
+ * orchestrator mirror; the mirror is gone).
  *
  * @throws Throwable-shaped errors on JS (`LuaBytecodeFormatException` for
  *   invalid input / CFF refusals, `IllegalArgumentException` for bad
@@ -83,8 +73,14 @@ fun obfuscateLuaChunk(
     val expected = parseExpectedVersion(request.expectedVersion)
     val chunk = LuaChunkLoader.load(input, expected)
     val config = request.toConfig()
+    // The master seed is resolved ONCE here so the result can echo it; pinning
+    // it into the config makes the pipeline use exactly this value (a non-null
+    // config master seed is taken verbatim — no second entropy draw), which
+    // keeps per-run-entropy and `--seed 0` semantics identical to the JVM CLI.
     val master = SeedPolicy.masterSeed(config.masterSeed, chunk)
-    val report = obfuscateWebSubset(chunk, config, master)
+    // Composition root of the web runtime: the full built-in plugin set; the
+    // pipeline skips every pass whose config section is null.
+    val report = LuaObfuscator.obfuscate(chunk, config.copy(masterSeed = master), ObfuscationRegistry.builtIn())
     return WebObfuscationResultJs(
         chunkBase64 = Base64.encode(LuaChunkWriter.dump(chunk)),
         version = chunk.header.version.displayName,
@@ -134,160 +130,5 @@ private fun WebObfuscationRequestJs.toConfig(): ObfuscationConfig {
     return if (stripDebugInfo == null && masterSeed == null) preset else preset.copy(
         masterSeed = masterSeed,
         stripDebugInfo = stripDebugInfo ?: preset.stripDebugInfo,
-    )
-}
-
-/**
- * The orchestrator: a line-for-line mirror of the JVM frontends'
- * `obfuscate` (root module, `obfuscate/LuaObfuscator.kt`) minus the root-only
- * key renaming pass, so the web pipeline and the JVM pipeline stay in lock
- * step — pass order, seed stamping precedence and the CFF/Pass-K coupling
- * included. Any behavioural change there must be mirrored here.
- */
-private fun obfuscateWebSubset(
-    chunk: LuaChunk,
-    config: ObfuscationConfig,
-    master: Long,
-): ObfuscationReport {
-    // PRED-2/LEAK-5: the master seed is resolved once per run by the caller
-    // and stamped into every pass config whose own `seed` field is still at
-    // its default.
-    val cfg = config.copy(
-        stringEncryption = config.stringEncryption?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "strings")) else it
-        },
-        constantEncryption = config.constantEncryption?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "constants")) else it
-        },
-        jumpIndirection = config.jumpIndirection?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "jumps")) else it
-        },
-        junkCode = config.junkCode?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "junk")) else it
-        },
-        blockCloning = config.blockCloning?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "clones")) else it
-        },
-        controlFlowFlattening = config.controlFlowFlattening?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "flatten")) else it
-        },
-        registerObfuscation = config.registerObfuscation?.let {
-            if (it.seed == 0L) it.copy(seed = SeedPolicy.passSeed(master, "registers")) else it
-        },
-    )
-    val moduleContext = LuaObfuscationModuleContext(chunk, cfg, master)
-    val moduleResults = ArrayList<LuaObfuscationModuleResult>()
-    cfg.modules.filter { it.phase == ObfuscationPhase.BEFORE_CORE }
-        .forEach { moduleResults += it.apply(moduleContext) }
-    // Order matters: the jump pass runs first so the string stubs it creates
-    // afterwards are plain, untrampolined blocks, and junk guards every jump
-    // including the stubs' (all three append blocks after a terminator).
-    val jumps = cfg.jumpIndirection?.let { LuaJumpIndirection.apply(chunk, it) }
-    val strings = cfg.stringEncryption?.let { LuaStringEncryptor.encrypt(chunk, it) }
-    // Pass R runs after the string stubs exist and before junk / cloning /
-    // flattening (those derive their own register budgets from the layout).
-    val registers = cfg.registerObfuscation?.let { LuaRegisterObfuscator.apply(chunk, it) }
-    val junk = cfg.junkCode?.let { LuaJunkCode.apply(chunk, it) }
-    val clones = cfg.blockCloning?.let { LuaBlockCloning.apply(chunk, it) }
-    // Flattening rebuilds the whole instruction stream, so it runs last.
-    var flattening = cfg.controlFlowFlattening?.let {
-        val decoders = strings?.decoderPrototypeIndex?.takeIf { index -> index >= 0 }
-            ?.let { index -> chunk.mainPrototype.nestedPrototypes[index].allPrototypes().toSet() }
-            ?: emptySet()
-        LuaControlFlowFlattening.apply(chunk, it, strings?.stubPrototypes ?: emptySet(), decoders)
-    }
-    // Pass K runs AFTER the flattener (see the JVM orchestrator for the two
-    // reasons: rematerialised constants must stay encryptable, and the kget
-    // decoder must stay out of the flattener's view entirely).
-    if (flattening?.prototypes?.any { it.status == "INPUT_REJECTED" } == true) {
-        throw LuaBytecodeFormatException(
-            "CFF rejected an invalid input instruction structure: " +
-                flattening.prototypes.filter { it.status == "INPUT_REJECTED" }
-                    .joinToString { "${it.prototypeIndex}: ${it.reasons}" },
-        )
-    }
-    val constants = cfg.constantEncryption?.let { constantConfig ->
-        val protected = IdentitySet<LuaPrototype>()
-        val beforeConstants = chunk.prototypes
-        var inlineConstants = 0
-        var inlinePrototypes = 0
-        var inlineSites = 0
-        val updatedRecords = ArrayList<CffPrototypeReport>()
-        for (record in flattening?.prototypes.orEmpty()) {
-            val proof = record.proof
-            if (proof == null) {
-                updatedRecords += record
-                continue
-            }
-            val prototype = beforeConstants[record.prototypeIndex]
-            protected += prototype
-            val expansion = CffConstantExpansion.apply(prototype, proof, constantConfig)
-            if (expansion != null) {
-                inlineConstants += expansion.constants
-                inlineSites += expansion.sites
-                inlinePrototypes++
-                updatedRecords += record.copy(
-                    proof = expansion.proof,
-                    verifiedControlPaths = expansion.paths,
-                    verificationSteps = expansion.steps,
-                )
-            } else {
-                updatedRecords += record
-            }
-        }
-        flattening = flattening?.copy(prototypes = updatedRecords)
-        // The legacy decoder uses CALL and cannot enter a live control packet.
-        // Flattened prototypes use only the verified local expansion above.
-        LuaConstantEncryptor.encrypt(chunk, constantConfig, protected).let {
-            if (it.decoderPrototypeIndex >= 0) {
-                val at = if (chunk.mainPrototype.code.first().opcodeName == "VARARGPREP") 1 else 0
-                fun moved(pc: Int) = if (pc < at) pc else pc + 2
-                flattening = flattening?.copy(
-                    prototypes = flattening!!.prototypes.map { record ->
-                        val proof = record.proof
-                        if (record.prototypeIndex != 0 || proof == null) {
-                            record
-                        } else {
-                            record.copy(
-                                proof = proof.copy(
-                                    controlEntries = proof.controlEntries
-                                        .map { (pc, target) -> moved(pc) to target },
-                                    destinationPcs = proof.destinationPcs.map(::moved),
-                                ),
-                            )
-                        }
-                    },
-                )
-            }
-            it.copy(
-                encryptedConstants = it.encryptedConstants + inlineConstants,
-                rewrittenSites = it.rewrittenSites + inlineSites,
-                patchedPrototypes = it.patchedPrototypes + inlinePrototypes,
-            )
-        }
-    }
-    // Every pass has run; some block layouts end in a `JMP` dispatcher back
-    // edge — the appended unreachable RETURN makes the chunk acceptable to
-    // official tooling again (unluac's "ends with RETURN" invariant).
-    val tailReturn = LuaTailReturn.apply(chunk)
-    if (config.stripDebugInfo) {
-        chunk.clearDebugInfo()
-        // clearDebugInfo drops the synthetic upvalue names LuaTailReturn just
-        // installed; re-run the naming half so stripped chunks stay parseable.
-        LuaTailReturn.nameUpvalues(chunk)
-    }
-    cfg.modules.filter { it.phase == ObfuscationPhase.AFTER_CORE }
-        .forEach { moduleResults += it.apply(moduleContext) }
-    return ObfuscationReport(
-        stringEncryption = strings,
-        constantEncryption = constants,
-        jumpIndirection = jumps,
-        junkCode = junk,
-        blockCloning = clones,
-        controlFlowFlattening = flattening,
-        strippedDebugInfo = config.stripDebugInfo,
-        tailReturn = tailReturn,
-        registerObfuscation = registers,
-        modules = moduleResults,
     )
 }

@@ -12,6 +12,7 @@ import io.github.dingyi222666.luabytecode.obfuscate.JunkCodeConfig
 import io.github.dingyi222666.luabytecode.obfuscate.JumpIndirectionConfig
 import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscator
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
+import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationRegistry
 import io.github.dingyi222666.luabytecode.obfuscate.OpaquePredicate
 import io.github.dingyi222666.luabytecode.obfuscate.StringEncryptionConfig
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
@@ -351,7 +352,11 @@ internal fun runNativeCli(args: Array<String>): Int {
             presetConfig != null -> presetConfig.copy(masterSeed = masterSeed)
             else -> flagConfig
         }
-        val obfuscationReport = obfuscation?.let { LuaObfuscator.obfuscate(chunk, it) }
+        // Composition root: the default built-in pass plugin set; the pipeline
+        // skips passes whose config section is null (CLI semantics unchanged).
+        val obfuscationReport = obfuscation?.let {
+            LuaObfuscator.obfuscate(chunk, it, ObfuscationRegistry.builtIn())
+        }
         obfuscationReport?.let { report ->
             println("obfuscated: $report")
             report.controlFlowFlattening?.let { flattening ->
