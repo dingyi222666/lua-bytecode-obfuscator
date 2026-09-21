@@ -16,10 +16,10 @@
 | 生成解释器目标字节码级 CFF | 未完成 | 后续需要目标版本 `luac`/loader/editor/validator 闭环；VM 报告以 `interpreter.bytecode.cff = not_implemented` 明示。|
 | LuaVmIr | 已移除 | 暂不引入额外 IR；当前 translator 直接生成私有 VM ISA。|
 | pass 插件化编排 | **已完成（2026-09-21）** | 内置 pass 以 `ObfuscationPassPlugin` 插件注册进 `ObfuscationRegistry`（:lua-obfuscation-pipeline）；执行顺序由 `runsAfter`/`runsBefore` 声明约束拓扑解析（稳定、与注册顺序无关，环/悬空引用显式异常）；宿主组合根显式装配 `builtIn()` 插件集，config null=禁用语义不变；详见 roadmap-kmp-progress.md 插件化章节。|
-| 单体 Gradle 工程拆分 | **已完成** | 13 个 KMP 库模块（platform/model/io/edit/analysis/api/五个 feature/:lua-vm/:lua-obfuscation-pipeline）+ 根（JVM 库入口/集成测试）+ 两个宿主模块（:lua-runtime-js、:lua-cli-native）。|
+| 单体 Gradle 工程拆分 | **已完成** | 13 个 KMP 库模块（platform/model/io/edit/analysis/api/五个 feature/:lua-vm/:lua-obfuscation-pipeline）+ 根（JVM 库入口/集成测试）+ 宿主模块（:lua-runtime-js、:lua-cli-native，Compose Web 改造 Round 3 起另有 :lua-web-compose）。|
 | commonMain KMP 核心 | **已完成** | 全部核心与 feature 代码位于 commonMain；jvm/js/linuxX64 三 target。|
 | jvmMain | **已完成（JVM 适配面）** | platform.jvm 装配、chunk 文件 io 适配器与各模块 jvmTest。|
-| jsMain 网页加密 | **已完成（2026-09-21，Phase 6 前半）** | 全部库模块带 js(IR) target；:lua-runtime-js 提供浏览器可用混淆 API（common API 编排子集）、静态 UI + Worker + 下载与 JS 接缝装配（见 roadmap-kmp-progress.md Phase 6 前半）。|
+| jsMain 网页加密 | **已完成（2026-09-21，Phase 6 前半）** | 全部库模块带 js(IR) target；:lua-runtime-js 提供浏览器可用混淆 API（common API 编排子集）、静态 UI + Worker + 下载与 JS 接缝装配（见 roadmap-kmp-progress.md Phase 6 前半）。Compose Web 改造 Round 3（2026-09-21）起浏览器 UI 由 **:lua-web-compose**（Compose Multiplatform for Web，wasmJs 宿主）承担，:lua-runtime-js 保留混淆 API 与 UMD bundle 交付。|
 | nativeMain / Native CLI | **已完成（2026-09-21，Phase 6 后半）** | 全部 13 个库模块带 linuxX64 target；编排器下沉 `:lua-obfuscation-pipeline`（jvm/js/linuxX64 共用）；`:lua-cli-native` 提供默认 CLI（posix 文件 io、/dev/urandom 熵、内嵌 decoder 资产、`--vm-out`），根模块已移除 `application` 插件——**Native CLI 是唯一默认 CLI**。|
 | 可选特性插件发布 | **已完成（发布能力，终验补齐）** | 全部 13 个库模块带 `maven-publish`（platform/model/io/edit 于终验补齐）；:lua-runtime-js / :lua-cli-native 是宿主产物（可执行/网页资源），不发布。api/implementation 暴露面梳理是真实发布前的非阻塞待办。|
 | 差分矩阵 CI | **已完成（终验接入，probe-then-run）** | verify.yml `differential-matrix` job：探测三版本 lua/luac/python3，齐备则跑 `tools/verify-all.sh`，缺失则逐项输出 skipped 理由并 exit 0（不阻塞门禁，也不算语义通过）。|
@@ -55,7 +55,11 @@
                                       + LuaHostSeed + LuaVmPipeline 组合根
                                       [落地: jvm/js/linuxX64, maven-publish]
 :lua-runtime-js           jsMain browser API and web UI
-                                      [落地: js only 宿主（UMD + 静态页 + Worker），不发布]
+                                      [落地: js only 宿主（UMD bundle + 混淆 API；
+                                      静态页/Worker 已由 :lua-web-compose 取代），不发布]
+:lua-web-compose          wasmJs Compose-for-Web host (Compose UI over the
+                          common pipeline, replaces the handwritten page)
+                                      [落地: wasmJs browser 宿主，binaries.executable，不发布]
 :lua-cli-native           nativeMain default CLI (posix io + platform seams)
                                       [落地: linuxX64("native") 宿主，binaries.executable，不发布]
 ```

@@ -883,3 +883,129 @@ WebObfuscator 侧解析一次 master seed 并 pin 回 config（非 null master �
   报告完整性 + strip 标志；strings→cff / strings+cff+constants 槽流动配对。
 - 既有 `SingleModuleIsolationTest`（8 用例）、`PipelineContractTest`（三平台）、
   差分矩阵 job 全部零改动通过。
+
+## Compose Web 改造 Round 3（2026-09-21 完成）
+
+用 Compose Multiplatform for Web（wasmJs 宿主）替换 Phase 6 的手写静态页
+（index.html + worker.js）。新宿主模块 `:lua-web-compose`
+（`apps/lua-web-compose`），**CI 全程无浏览器**——验证路径是
+`./gradlew build` 内的 wasmJs 编译/链接 + `wasmJsBrowserDistribution`
+产物冒烟（bundle 断言 + artifact 上传）。
+
+### 模块结构
+
+```text
+:lua-web-compose（wasmJs only，依赖全部 13 个库模块的 wasmJs 变体，不发布）
+  build.gradle.kts      kotlin("multiplatform") + org.jetbrains.compose 1.12.0
+                        + org.jetbrains.kotlin.plugin.compose 2.4.20（根 apply false）；
+                        wasmJs { browser{ commonWebpackConfig.outputFileName =
+                        "composeApp.js" }; binaries.executable() }；
+                        wasmJsBrowserTest 显式 disabled（CI 无浏览器）；
+                        Compose 依赖走显式坐标（CMP 1.10 起插件别名弃用）：
+                        material3 1.9.0（material3 自 1.9 后独立版本线，1.10+ 仅 alpha，
+                        CMP 1.12.0 插件自带 catalog 即钉 1.9.0）+
+                        foundation/ui/runtime 1.12.0 + kotlinx-browser 0.5.0
+  wasmJsMain  WasmPlatform            接缝装配（crypto.getRandomValues 熵 / 资产 /
+                                      静默调试 console.error / trace 丢弃）
+              LuaDecoderAssetsWasm    生成的 base64 资产常量（四投递之一）
+              WebObfuscator           纯 Kotlin API（主线程直调，无需 @JsExport）
+                                      + 平铺 @JsExport obfuscateLuaChunkJson（备用）
+              WebBridge               文件选择 + 下载（js() 片段 + kotlinx-browser DOM）
+              App / Main              ComposeViewport(document.body!!) 引导 + material3 UI
+              resources/index.html    最小加载页（composeApp.mjs，.js 兜底）
+```
+
+工具：`tools/generate-js-decoder-assets.py` 扩展为**四投递**单源
+（JVM classpath / js / native / wasmJs），wasm 侧对象 `LuaDecoderAssetsWasm`
+（包 `io.github.dingyi222666.luabytecode.web.wasm`）。改任何 .luac 不重新生成 →
+既有 js/native 侧测试必红（wasm 无测试源集，靠同源生成保证一致）。
+
+### 关键决策与踩坑
+
+1. **material3 坐标**：`org.jetbrains.compose.material3:material3` 无 1.12.0
+   stable（1.10+ 仅 alpha；material3 自 1.9.0 起独立版本线）。直接写 1.12.0
+   依赖解析直接红（第一次骨架 push 已踩）。从 CMP 1.12.0 插件 jar 内嵌 catalog
+   确认官方钉版 = **1.9.0**；foundation/ui/runtime 才是 1.12.0。
+2. **binaryen（wasm-opt）冷解析超时**：wasmJs 生产链接需要
+   `com.github.webassembly:binaryen:130`（JitPack 坐标），JitPack 首次请求按需
+   构建该版本 → resolver "Read timed out"（run 35635146253 首跑红）。
+   `gh run rerun --failed` 一次即绿（JitPack 构建完成后缓存，且自托管 runner 的
+   Gradle 缓存跨 run 复用）；无 KGP 开关可跳过 binaryen。
+3. **wasm 互操作约束**：`js()` 只允许包级顶层函数、编译期常量串；
+   `Long`/`ByteArray`/自定义类不可跨界 → 熵走 16 位 hex 字符串回传再拼 Long，
+   文件/下载 API 以 base64 String 为边界，@JsExport 备用形状里 seed 走
+   十进制字符串（BigInt 陷阱）。
+4. **js() 片段必须写成单表达式**：本工具链的 import-object 生成器把 js() 串
+   **原样拼进箭头函数表达式位**（`'fqn' : (args) => <body>`），多语句体直接
+   产出 `() => const ...` 非法 JS（run 35636945790 webpack "Module parse
+   failed"）。所有片段统一写成 IIFE 单表达式：`js("(() => { ...; return x; })()")`
+   ——语句进内层箭头，外层表达式不带尾分号。
+5. **入口**：`ComposeViewport(document.body!!) { App() }`（CanvasBasedWindow
+   已弃用）且为 `@ExperimentalComposeUiApi`，需 `@OptIn`；index.html 需显式
+   `html,body{width/height:100%;margin:0}`，ComposeViewport 按 body client
+   box 定 canvas 尺寸。
+6. **dist 产物命名**：webpack 生产包入口默认按 **Gradle 项目名**命名
+   （`lua-web-compose.js`，outputModuleName 不影响它），.wasm 是内容哈希名
+   （如 `d74cf49901ef3e2a09f6.wasm`，~3.6MB，binaryen 已跑）。用
+   `commonWebpackConfig { outputFileName = "composeApp.js" }` 钉入口名，
+   index.html 加载它（.mjs 兜底），CI 冒烟按同一契约断言。
+7. `wasmJs { browser{} }` 触发 `@ExperimentalWasmDsl` 配置期警告（仅警告）；
+   测试任务名 `wasmJsBrowserTest` 显式 disable，`build`/`check` 保持无浏览器。
+8. gpg pinentry 在 agent 会话中无法弹窗（"Operation cancelled"），按 Phase 6b
+   先例落到 `--no-gpg-sign`。
+
+### UI 能力清单（App.kt，material3）
+
+- 选择 `.luac` 文件（隐藏 file input → FileReader → btoa），选中即
+  `inspectLuaChunk` 等价检查并展示 `文件名 (Lua 5.x)`；解析失败显示错误。
+- preset 下拉：none / light / balanced / aggressive。
+- granular 强制关断 chips（与 CLI flag 族一致）：strings / constants /
+  cff flatten / junk code / debug strip（按 preset 合并语义叠加）。
+- seed 输入（空 = 随机熵；非法十进制在运行时给出诊断）。
+- "Obfuscate" 按钮（busy 态 + "Obfuscating..." 文案 + spinner；先挂起一帧
+  再进入同步运行）；结果给出带版本与 seed 的下载按钮
+  （`obfuscated_lua54_seed<seed>.luac`）与等宽字体滚动 report
+  （SelectionContainer 可复制）。
+
+### CI（verify.yml）
+
+- `./gradlew build`：:lua-web-compose 的 wasmJs 编译 + 开发/生产链接随全仓
+  build 链执行（binaryen 缓存后增量 ~3 分钟）。
+- "Compose web dist smoke"：`:lua-web-compose:wasmJsBrowserDistribution` →
+  断言 `build/dist/wasmJs/productionExecutable/` 含 `composeApp.mjs|.js`、
+  `.wasm`（> 1M，防链接丢库）、index.html 引用 composeApp。
+- **artifact `web-compose-dist`**：upload-artifact 上传整个 productionExecutable
+  目录（4.87MB；无需本机构建即可本地起服务验证 UI，`python3 -m http.server`
+  于解压目录后直接打开页面）。
+- 旧 "Web dist smoke" 保留 bundle 断言（whole-program IR 回归门），去掉
+  index/worker 断言（页已删除）；`webDist` 改为只 Sync UMD bundle。
+
+### Round 3 验证
+
+全部分步 push 走 CI（无本地构建）；过程 run 与踩坑的对应关系：
+
+| 提交 | run | 结果 |
+|---|---|---|
+| 骨架（material3 误写 1.12.0） | 35634849680 | 红（坐标不存在） |
+| material3 1.9.0 修复 | 35635146253 | 首跑 binaryen JitPack 冷构建超时红 → rerun 绿 2m51s |
+| UI + 装配 | 35636370902 | 红（ComposeViewport 需 OptIn） |
+| OptIn 修复 | 35636945790 | 红（js() 多语句体在 import-object 表达式位非法）×1 checkout 抖动 rerun |
+| js() IIFE 化 | 35640156636 | 红×2（checkout GnuTLS 抖动，rerun 恢复）→ **绿**（build 3m45s + differential 16m57s） |
+| 删旧 UI + CI 冒烟 | 35643540670 | 红（webpack 入口默认按项目名命名） |
+| outputFileName 钉名 | 35644303336 | 红（build script：set() 与 OptIn） |
+| 脚本修复 | 35645088390 | **全绿**（build 4m07s + differential 17m04s，artifact web-compose-dist 4.87MB） |
+
+最终绿 run：<https://github.com/dingyi222666/lua-bytecode-obfuscator/actions/runs/35645088390>。
+
+### 已知限制 / v2 方向
+
+- **主线程同步运行**：wasm 无真线程，混淆期间 UI 冻结（先画 busy 态再阻塞）；
+  worker 化（`obfuscateLuaChunkJson` 已备好 String 进/出形状）是 v2 路线：
+  worker 加载 composeApp 产物不可行时，用独立 wasm worker 入口 + postMessage。
+- **WasmGC 浏览器门槛**：Chrome 119+ / Firefox 129+ / Safari 18.4+。
+- 大输入（数百 KB luac）的 btoa/atob 路径按 32K 分块，未见上限问题，但
+  主线程同步混淆对超大 chunk 的卡顿无解，等 worker 化。
+- `:lua-runtime-js` 与 `:lua-web-compose` 并存：前者保留 API/bundle（js 宿主
+  与 node 消费者），后者是浏览器 UI 的现役交付。
+
+
