@@ -28,6 +28,12 @@ kotlin {
         nodejs()
     }
 
+    // Web (wasm) target: same pure-common code, tests run on Node.js only —
+    // no browser in CI (mirrors the js target policy).
+    wasmJs {
+        nodejs()
+    }
+
     // Native target (roadmap step 6b): the common code compiles for the
     // linux X64 toolchain unchanged; commonTest suites run on native too.
     // The platform seam implementations for native live in the native host
