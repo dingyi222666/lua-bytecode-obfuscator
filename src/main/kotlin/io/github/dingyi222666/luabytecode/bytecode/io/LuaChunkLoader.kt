@@ -16,7 +16,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaVarintStyle
 import io.github.dingyi222666.luabytecode.platform.hex2Upper
 import io.github.dingyi222666.luabytecode.platform.hexUpper
 
-
 /** `LUA_SIGNATURE` — `ESC "Lua"`, the first four bytes of every chunk. */
 private val LUA_SIGNATURE = byteArrayOf(0x1B, 'L'.code.toByte(), 'u'.code.toByte(), 'a'.code.toByte())
 
@@ -76,13 +75,10 @@ object LuaChunkLoader {
      * @param expectedVersion when not `null`, the chunk must declare this version.
      * @throws LuaBytecodeFormatException when the byte array is not a valid chunk.
      */
-    @JvmStatic
-    @JvmOverloads
     fun load(bytes: ByteArray, expectedVersion: LuaBytecodeVersion? = null): LuaChunk =
         ChunkLoader(bytes, expectedVersion).load()
 
     /** Quick check whether [bytes] starts with the Lua chunk signature. */
-    @JvmStatic
     fun isLuaBytecode(bytes: ByteArray): Boolean {
         if (bytes.size < LUA_SIGNATURE.size) {
             return false

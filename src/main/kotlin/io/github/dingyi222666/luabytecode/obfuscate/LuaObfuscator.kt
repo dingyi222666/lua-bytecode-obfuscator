@@ -62,7 +62,6 @@ data class ObfuscationConfig(
     val modules: List<LuaObfuscationModule> = emptyList(),
 ) {    companion object {
         /** Nothing at all. */
-        @JvmField
         val NONE = ObfuscationConfig()
 
         /**
@@ -70,7 +69,6 @@ data class ObfuscationConfig(
          * No junk code and no flattening, so the runtime and size cost stay in
          * the noise (see tools/benchmark-presets.sh).
          */
-        @JvmField
         val LIGHT = ObfuscationConfig(
             stringEncryption = StringEncryptionConfig(minLength = 8),
             jumpIndirection = JumpIndirectionConfig(depth = 1),
@@ -81,7 +79,6 @@ data class ObfuscationConfig(
          * sites only (`hotSiteRatio = 0.0`) so hot loops stay fast; no
          * flattening. Speed/strength trade-off measured by the benchmark script.
          */
-        @JvmField
         val BALANCED = ObfuscationConfig(
             stringEncryption = StringEncryptionConfig(minLength = 6),
             jumpIndirection = JumpIndirectionConfig(depth = 1, junkPerHop = 1),
@@ -96,7 +93,6 @@ data class ObfuscationConfig(
         )
 
         /** Most work: every literal, three hops with junk, four guarded branches. */
-        @JvmField
         val AGGRESSIVE = ObfuscationConfig(
             stringEncryption = StringEncryptionConfig(minLength = 1, encryptKeys = true),
             // Pass K (LEAK-2): numeric / boolean pool constants encrypted with a
@@ -197,8 +193,6 @@ data class ObfuscationReport(
 /** Runs the configured passes over a chunk, in place. */
 object LuaObfuscator {
 
-    @JvmStatic
-    @JvmOverloads
     fun obfuscate(
         chunk: LuaChunk,
         config: ObfuscationConfig = ObfuscationConfig.BALANCED,

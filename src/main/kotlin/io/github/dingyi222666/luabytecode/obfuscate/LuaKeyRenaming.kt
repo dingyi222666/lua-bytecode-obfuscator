@@ -78,8 +78,6 @@ object LuaKeyRenaming {
         "GETI", "SETI", // 5.4/5.5 integer keys — included for completeness of the scan below
     )
 
-    @JvmStatic
-    @JvmOverloads
     fun apply(
         chunk: LuaChunk,
         config: KeyRenamingConfig = KeyRenamingConfig(),

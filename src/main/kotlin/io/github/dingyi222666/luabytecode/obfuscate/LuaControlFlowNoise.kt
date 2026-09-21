@@ -89,8 +89,6 @@ data class JumpIndirectionReport(
  */
 object LuaJumpIndirection {
 
-    @JvmStatic
-    @JvmOverloads
     fun apply(
         chunk: LuaChunk,
         config: JumpIndirectionConfig = JumpIndirectionConfig(),
@@ -312,8 +310,6 @@ data class JunkCodeReport(
  */
 object LuaJunkCode {
 
-    @JvmStatic
-    @JvmOverloads
     fun apply(
         chunk: LuaChunk,
         config: JunkCodeConfig = JunkCodeConfig(),
@@ -634,8 +630,6 @@ data class CloneBlocksReport(
 
 object LuaBlockCloning {
 
-    @JvmStatic
-    @JvmOverloads
     fun apply(
         chunk: LuaChunk,
         config: CloneBlocksConfig = CloneBlocksConfig(),

@@ -11,7 +11,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
 import io.github.dingyi222666.luabytecode.bytecode.edit.edit
 import io.github.dingyi222666.luabytecode.bytecode.edit.replacing
 
-
 /** `LUA_SIGNATURE` — `ESC "Lua"`. */
 private val DUMP_SIGNATURE = byteArrayOf(0x1B, 'L'.code.toByte(), 'u'.code.toByte(), 'a'.code.toByte())
 
@@ -63,7 +62,6 @@ private const val MAX_SHORT_STRING_LENGTH = 40
 object LuaChunkWriter {
 
     /** Dumps a chunk into a fresh byte array. */
-    @JvmStatic
     fun dump(chunk: LuaChunk): ByteArray = ChunkDumper(chunk).dump()
 }
 

@@ -16,8 +16,6 @@ object LuaChunkPrinter {
      * @param includeCode when `false`, instructions are not listed.
      * @param includeDebug when `false`, line info / locals / upvalue names are hidden.
      */
-    @JvmStatic
-    @JvmOverloads
     fun print(
         chunk: LuaChunk,
         includeCode: Boolean = true,
@@ -145,7 +143,6 @@ object LuaChunkPrinter {
     }
 
     /** Formats a constant, truncating long strings. */
-    @JvmStatic
     fun formatConstant(constant: LuaConstant): String = when (constant) {
         LuaConstant.Nil -> "nil"
         is LuaConstant.Boolean -> constant.value.toString()
@@ -155,8 +152,6 @@ object LuaChunkPrinter {
     }
 
     /** Escapes control characters, keeping printable UTF-8 text readable. */
-    @JvmStatic
-    @JvmOverloads
     fun escape(text: String, maxLength: Int = 60): String {
         val builder = StringBuilder()
         var truncated = false

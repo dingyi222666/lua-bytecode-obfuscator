@@ -165,7 +165,6 @@ fun LuaPrototype.patchInstruction(index: Int, patch: (LuaInstruction) -> LuaInst
 }
 
 /** Appends [instruction], keeping the line tables and local pc ranges valid. */
-@JvmOverloads
 fun LuaPrototype.appendInstruction(instruction: LuaInstruction, line: Int? = null) {
     insertInstruction(code.size, instruction, line)
 }
@@ -179,7 +178,6 @@ fun LuaPrototype.appendInstruction(instruction: LuaInstruction, line: Int? = nul
  *  * local variable pc ranges are shifted;
  *  * a stripped prototype stays stripped.
  */
-@JvmOverloads
 fun LuaPrototype.insertInstruction(index: Int, instruction: LuaInstruction, line: Int? = null) {
     require(index in 0..code.size) { "instruction index $index out of 0..${code.size}" }
     val lines = currentAbsoluteLines()
@@ -193,7 +191,6 @@ fun LuaPrototype.insertInstruction(index: Int, instruction: LuaInstruction, line
 }
 
 /** Inserts [instructions] before [index]; [lines] must match their count. */
-@JvmOverloads
 fun LuaPrototype.insertInstructions(
     index: Int,
     instructions: List<LuaInstruction>,
@@ -259,7 +256,6 @@ fun LuaPrototype.removeInstructions(range: IntRange): Int {
  * Replaces [range] with [instructions] (`range` is inclusive); [lines] must
  * match the count of [instructions] when given.
  */
-@JvmOverloads
 fun LuaPrototype.replaceInstructions(
     range: IntRange,
     instructions: List<LuaInstruction>,
@@ -310,7 +306,6 @@ private fun LuaPrototype.shiftLocalVariablesForRemove(index: Int) {
 // -------------------------------------------------------------- upvalues etc.
 
 /** Appends an upvalue (and its optional debug [name]) and returns its index. */
-@JvmOverloads
 fun LuaPrototype.addUpvalue(upvalue: LuaUpvalue, name: LuaString? = null): Int {
     upvalues += upvalue
     when {

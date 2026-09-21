@@ -126,8 +126,6 @@ object LuaControlFlowFlattening {
     private const val R07_STORAGE = "R07 no provably safe storage"
     private const val R17_CAPACITY = "R17 encoding capacity exceeded"
 
-    @JvmStatic
-    @JvmOverloads
     fun apply(
         chunk: LuaChunk,
         config: ControlFlowFlatteningConfig = ControlFlowFlatteningConfig(),

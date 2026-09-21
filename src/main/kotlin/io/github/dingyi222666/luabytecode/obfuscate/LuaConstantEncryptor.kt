@@ -104,8 +104,6 @@ object LuaConstantEncryptor {
      *
      * @return statistics about what was rewritten.
      */
-    @JvmStatic
-    @JvmOverloads
     fun encrypt(
         chunk: LuaChunk,
         config: ConstantEncryptionConfig = ConstantEncryptionConfig(),

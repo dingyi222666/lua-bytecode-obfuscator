@@ -25,8 +25,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.currentAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaPrototypeScope
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 
-
-
 /**
  * Tunables of [LuaStringEncryptor].
  */
@@ -118,8 +116,6 @@ object LuaStringEncryptor {
      *
      * @return statistics about what was rewritten.
      */
-    @JvmStatic
-    @JvmOverloads
     fun encrypt(
         chunk: LuaChunk,
         config: StringEncryptionConfig = StringEncryptionConfig(),

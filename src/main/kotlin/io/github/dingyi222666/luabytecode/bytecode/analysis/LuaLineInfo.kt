@@ -52,7 +52,6 @@ object LuaLineInfo {
      * The produced pair is decoded back to [absoluteLines] by
      * [LuaPrototype.resolvedLineInfo] and by Lua's own `luaG_getfuncline`.
      */
-    @JvmStatic
     fun encode(
         version: LuaBytecodeVersion,
         lineDefined: Int,

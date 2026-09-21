@@ -39,7 +39,6 @@ enum class LuaUpvalueKind(val value: Int, val kindName: String) {
     ;
 
     companion object {
-        @JvmStatic
         fun nameOf(value: Int): String? = entries.firstOrNull { it.value == value }?.kindName
     }
 }

@@ -16,8 +16,6 @@ import io.github.dingyi222666.luabytecode.bytecode.luaInstruction
 import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.analysis.retargeted
 
-
-
 /**
  * A small DSL around the [LuaPrototype] editing API.
  *
@@ -250,12 +248,10 @@ class LuaPrototypeScope(val prototype: LuaPrototype) {
         prototype.patchInstruction(index, transform)
 
     /** Inserts [instruction] before [index]. */
-    @JvmOverloads
     fun insert(index: Int, instruction: LuaInstruction, line: Int? = null) =
         prototype.insertInstruction(index, instruction, line)
 
     /** Appends [instruction] at the end of the code. */
-    @JvmOverloads
     fun append(instruction: LuaInstruction, line: Int? = null) =
         prototype.appendInstruction(instruction, line)
 
@@ -266,7 +262,6 @@ class LuaPrototypeScope(val prototype: LuaPrototype) {
     fun remove(range: IntRange): Int = prototype.removeInstructions(range)
 
     /** Replaces the instructions of [range] (inclusive). */
-    @JvmOverloads
     fun replace(range: IntRange, instructions: List<LuaInstruction>, lines: List<Int>? = null) =
         prototype.replaceInstructions(range, instructions, lines)
 
@@ -290,7 +285,6 @@ class LuaPrototypeScope(val prototype: LuaPrototype) {
     }
 
     /** Appends an upvalue (and its optional debug name) and returns its index. */
-    @JvmOverloads
     fun addUpvalue(upvalue: LuaUpvalue, name: LuaString? = null): Int =
         prototype.addUpvalue(upvalue, name)
 

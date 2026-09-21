@@ -31,7 +31,6 @@ object LuaTailReturn {
             "tail return: $patchedPrototypes prototypes patched ($injectedInstructions instructions)"
     }
 
-    @JvmStatic
     fun apply(chunk: LuaChunk): Report {
         var patched = 0
         var injected = 0
@@ -60,7 +59,6 @@ object LuaTailReturn {
      * obfuscation pipeline must re-run this AFTER `clearDebugInfo` (the strip clears
      * the names again).
      */
-    @JvmStatic
     fun nameUpvalues(chunk: LuaChunk) {
         for (prototype in chunk.prototypes) {
             if (prototype.upvalueNames.isNotEmpty() || prototype.upvalues.isEmpty()) continue

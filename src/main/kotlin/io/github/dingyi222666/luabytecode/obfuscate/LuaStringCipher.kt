@@ -2,7 +2,6 @@ package io.github.dingyi222666.luabytecode.obfuscate
 
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 
-
 /**
  * The keystream cipher of the bundled decoder (`tools/decode.lua`):
  * `state = (state * 1103515245 + 12345) % 2^31` per byte and the payload byte is
@@ -33,8 +32,6 @@ object LuaStringCipher {
     }
 
     /** Applies the keystream: `out[i] = data[i] ^ keystream(seed, i)`. */
-    @JvmStatic
-    @JvmOverloads
     fun apply(data: ByteArray, seed: Int, spec: Spec = Spec()): ByteArray {
         val result = ByteArray(data.size)
         var state = seed.toLong() and 0x7FFFFFFFL
@@ -47,12 +44,8 @@ object LuaStringCipher {
     }
 
     /** Encrypts [plain] with [seed]. */
-    @JvmStatic
-    @JvmOverloads
     fun encrypt(plain: ByteArray, seed: Int, spec: Spec = Spec()): ByteArray = apply(plain, seed, spec)
 
     /** Decrypts [cipher] with [seed] (identical to [encrypt]). */
-    @JvmStatic
-    @JvmOverloads
     fun decrypt(cipher: ByteArray, seed: Int, spec: Spec = Spec()): ByteArray = apply(cipher, seed, spec)
 }

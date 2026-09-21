@@ -148,8 +148,6 @@ object LuaRegisterObfuscator {
     /** R4: live-range splits per prototype at most. */
     private const val SPLIT_BUDGET_PER_PROTOTYPE = 4
 
-    @JvmStatic
-    @JvmOverloads
     fun apply(
         chunk: LuaChunk,
         config: RegisterObfuscationConfig = RegisterObfuscationConfig(),
