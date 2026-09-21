@@ -29,6 +29,14 @@ set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 
 missing=""
+# Persistent provision lives under ~/tools/lua-<ver> (built once, survives
+# reboots); re-create the /tmp symlinks the probe expects whenever they are
+# gone (e.g. after a reboot or /tmp cleanup).
+for v in 5.3.6 5.4.6 5.5.1; do
+  if [ ! -x "/tmp/lua-$v/src/lua" ] && [ -x "$HOME/tools/lua-$v/src/lua" ]; then
+    ln -sfn "$HOME/tools/lua-$v" "/tmp/lua-$v"
+  fi
+done
 for v in 5.3.6 5.4.6 5.5.1; do
   for b in lua luac; do
     [ -x "/tmp/lua-$v/src/$b" ] || missing="$missing /tmp/lua-$v/src/$b"
@@ -38,8 +46,9 @@ command -v python3 >/dev/null 2>&1 || missing="$missing python3"
 if [ -n "$missing" ]; then
   echo "differential matrix SKIPPED — the runner lacks the real-interpreter environment:"
   for item in $missing; do echo "  missing: $item"; done
-  echo "  provision: build lua 5.3.6 / 5.4.6 / 5.5.1 from source under /tmp/lua-<ver>/"
-  echo "  (make linux will leave src/lua and src/luac) and install python3."
+  echo "  provision: build lua 5.3.6 / 5.4.6 / 5.5.1 from source under ~/tools/lua-<ver>/"
+  echo "  (make generic leaves src/lua and src/luac; the runner links ~/tools into"
+  echo "  /tmp automatically) and install python3."
   echo "  Until then this pillar stays skipped BY DESIGN (exit 0) — it is not a"
   echo "  semantic pass; see docs/vm-status-report.md for the evidence chain."
   exit 0
