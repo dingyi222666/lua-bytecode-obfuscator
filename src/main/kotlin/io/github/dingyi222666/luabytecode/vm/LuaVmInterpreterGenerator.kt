@@ -1,6 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
+import io.github.dingyi222666.luabytecode.platform.hexLower
 
 /**
  * P4.3 handler heterogeneity: instead of shipping one fixed interpreter, each chunk gets its
@@ -66,7 +67,7 @@ object LuaVmInterpreterGenerator {
         }
         fun saltExpr(): String = when (random.nextInt(4)) {
             0 -> (random.nextInt(0x2000000) + 1).toString() + " * 128 + " + random.nextInt(128)
-            1 -> "(0x" + java.lang.Long.toHexString(random.nextLong() and 0xFFFFFFFL) + " ~ 0)"
+            1 -> "(0x" + hexLower(random.nextLong() and 0xFFFFFFFL) + " ~ 0)"
             2 -> (random.nextInt(0x80000) + 1).toString() + " * 8192 + " + random.nextInt(8192)
             else -> "(2 ^ " + (random.nextInt(20) + 6) + " - " + random.nextInt(997) + ")"
         }

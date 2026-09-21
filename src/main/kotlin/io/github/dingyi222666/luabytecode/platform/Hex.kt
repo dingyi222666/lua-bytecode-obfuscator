@@ -46,6 +46,22 @@ fun hexUpper(value: Long): String {
 }
 
 /**
+ * Lowercase natural width hex of the unsigned 64 bit pattern of [value] —
+ * `Long.toHexString(value)`. `0L` renders as `"0"`; no zero padding.
+ */
+fun hexLower(value: Long): String {
+    var v = value
+    if (v == 0L) return "0"
+    val chars = CharArray(16)
+    var i = chars.size
+    while (v != 0L) {
+        chars[--i] = HEX_DIGITS_LOWER[(v and 0xFL).toInt()]
+        v = v ushr 4
+    }
+    return chars.concatToString(i, chars.size)
+}
+
+/**
  * Lowercase hex of the unsigned 64 bit pattern of [value], zero padded to
  * exactly [digits] characters (truncated from the left when the pattern needs
  * more, like `"%0${digits}x".format`). `[digits]` is clamped to `1..16`.

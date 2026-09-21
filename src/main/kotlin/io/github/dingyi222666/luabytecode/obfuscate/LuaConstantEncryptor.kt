@@ -1,4 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.IdentityMap
+import io.github.dingyi222666.luabytecode.platform.IdentitySet
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.platform.hex2
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
@@ -23,8 +25,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.currentAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.edit.indexOfConstant
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
-import java.io.ByteArrayOutputStream
-import java.util.IdentityHashMap
 
 /**
  * Tunables of [LuaConstantEncryptor] (Pass K, `LEAK-2`).
@@ -112,7 +112,7 @@ object LuaConstantEncryptor {
     ): ConstantEncryptionResult {
         val candidate = chunk.copy(mainPrototype = chunk.mainPrototype.detachedCopy())
         val candidatePrototypes = candidate.prototypes
-        val protected = java.util.Collections.newSetFromMap(IdentityHashMap<LuaPrototype, Boolean>())
+        val protected = IdentitySet<LuaPrototype>()
         chunk.prototypes.forEachIndexed { i, p ->
             if (protectedPrototypes.any { it === p }) protected += candidatePrototypes[i]
         }
@@ -124,7 +124,7 @@ object LuaConstantEncryptor {
         chunk.mainPrototype.commitFrom(candidate.mainPrototype)
         val committed = chunk.prototypes
         fun remap(indices: List<Int>): Set<LuaPrototype> =
-            java.util.Collections.newSetFromMap(IdentityHashMap<LuaPrototype, Boolean>()).apply {
+            IdentitySet<LuaPrototype>().apply {
                 indices.forEach { add(committed[it]) }
             }
         return result.copy(stubPrototypes = remap(stubs), decoderPrototypes = remap(decoders))
@@ -163,10 +163,10 @@ object LuaConstantEncryptor {
 
         // Upvalue slots: the main chunk hosts kget, every ancestor of a patched
         // prototype forwards it (same chain as the string decoder's).
-        val needsSlot = IdentityHashMap<LuaPrototype, Boolean>()
+        val needsSlot = IdentitySet<LuaPrototype>()
         needsSlot[main] = true
         markSlots(main, sites.keys, needsSlot, emptyList())
-        val slotOf = IdentityHashMap<LuaPrototype, Int>()
+        val slotOf = IdentityMap<LuaPrototype, Int>()
         assignSlots(main, null, needsSlot, slotOf)
 
         var encrypted = 0
@@ -231,7 +231,7 @@ object LuaConstantEncryptor {
     private fun collectPromisedSlots(
         chunk: LuaChunk,
     ): Map<LuaPrototype, List<Int>> {
-        val result = IdentityHashMap<LuaPrototype, MutableList<Int>>()
+        val result = IdentityMap<LuaPrototype, MutableList<Int>>()
         for (prototype in chunk.prototypes) {
             val referenced = referencedIndices(prototype)
             for ((constantIndex, constant) in prototype.constants.withIndex()) {
@@ -378,13 +378,13 @@ object LuaConstantEncryptor {
 
         // Serialize the selected constants, encrypt them, store them as string
         // constants, and remember the blob slot per constant index.
-        val plain = ByteArrayOutputStream()
+        val plain = ArrayList<Byte>()
         val order = sites.map { it.constantIndex }.distinct()
                 for (constantIndex in order) {
             when (val constant = prototype.constants[constantIndex]) {
-                is LuaConstant.Integer -> plain.write(integerPayload(constant.value))
-                is LuaConstant.Boolean -> plain.write(booleanPayload(constant.value))
-                is LuaConstant.Number -> plain.write(numberPayload(constant.value))
+                is LuaConstant.Integer -> plain.addAll(integerPayload(constant.value).toList())
+                is LuaConstant.Boolean -> plain.addAll(booleanPayload(constant.value).toList())
+                is LuaConstant.Number -> plain.addAll(numberPayload(constant.value).toList())
                 else -> throw LuaBytecodeFormatException("unexpected constant kind at K$constantIndex")
             }
         }
@@ -554,7 +554,7 @@ object LuaConstantEncryptor {
     private fun markSlots(
         prototype: LuaPrototype,
         patched: Set<LuaPrototype>,
-        needsSlot: IdentityHashMap<LuaPrototype, Boolean>,
+        needsSlot: IdentitySet<LuaPrototype>,
         ancestors: List<LuaPrototype>,
     ) {
         val chain = ancestors + prototype
@@ -569,8 +569,8 @@ object LuaConstantEncryptor {
     private fun assignSlots(
         prototype: LuaPrototype,
         parentSlot: Int?,
-        needsSlot: IdentityHashMap<LuaPrototype, Boolean>,
-        slotOf: IdentityHashMap<LuaPrototype, Int>,
+        needsSlot: IdentitySet<LuaPrototype>,
+        slotOf: IdentityMap<LuaPrototype, Int>,
     ) {
         var slot = parentSlot
         if (needsSlot[prototype] == true) {

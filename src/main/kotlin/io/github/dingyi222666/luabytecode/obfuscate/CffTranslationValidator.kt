@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import kotlin.math.floorDiv
+import kotlin.math.floorMod
 import io.github.dingyi222666.luabytecode.bytecode.*
 import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTarget
 
@@ -129,8 +131,8 @@ internal object CffTranslationValidator {
                             "ADD" -> a + b
                             "SUB" -> a - b
                             "MUL" -> a * b
-                            "MOD" -> Math.floorMod(a, b)
-                            "IDIV" -> Math.floorDiv(a, b)
+                            "MOD" -> floorMod(a, b)
+                            "IDIV" -> floorDiv(a, b)
                             "BAND" -> a and b
                             "BOR" -> a or b
                             "BXOR" -> a xor b

@@ -264,13 +264,23 @@ object LuaVmProgram {
         is io.github.dingyi222666.luabytecode.bytecode.LuaConstant.Integer ->
             byteArrayOf(ConstTag.INTEGER.toByte()) + longToBytes(constant.value)
         is io.github.dingyi222666.luabytecode.bytecode.LuaConstant.Number ->
-            byteArrayOf(ConstTag.FLOAT.toByte()) + longToBytes(java.lang.Double.doubleToLongBits(constant.value))
+            byteArrayOf(ConstTag.FLOAT.toByte()) + longToBytes(doubleToCanonicalBits(constant.value))
         is io.github.dingyi222666.luabytecode.bytecode.LuaConstant.Str ->
             byteArrayOf(ConstTag.STRING.toByte()) + constant.value.bytes
         else -> byteArrayOf(ConstTag.NIL.toByte())
     }
 
     private fun longToBytes(v: Long): ByteArray = ByteArray(8) { i -> (v ushr (i * 8)).toByte() }
+
+    /**
+     * `java.lang.Double.doubleToLongBits` equivalent (pure common): NaN is
+     * canonicalized to `0x7ff8000000000000`, every other value keeps its exact
+     * [Double.toRawBits] pattern. Deliberately canonicalizing (rather than
+     * using `toRawBits()` directly) so encrypted float payloads for NaN
+     * constants stay byte-compatible with the pre-KMP output.
+     */
+    private fun doubleToCanonicalBits(value: Double): Long =
+        if (value.isNaN()) 0x7ff8000000000000L else value.toRawBits()
 
     fun encode(map: OpcodeMap, insn: Insn): Int {
         val head = (map.encode(insn.op) shl 24) or ((insn.a and 0xFF) shl 16)

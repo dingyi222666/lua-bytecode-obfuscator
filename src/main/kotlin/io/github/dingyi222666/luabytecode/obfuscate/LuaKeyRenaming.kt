@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
@@ -10,7 +11,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaOpcodes
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.analysis.constantOperands
-import java.util.IdentityHashMap
 
 /**
  * Tunables of [LuaKeyRenaming] (LEAK-1 key half).
@@ -97,7 +97,7 @@ object LuaKeyRenaming {
         // ALL equal strings across ALL prototypes at once, otherwise the write
         // side and the read side split apart (Round 3: `attempt to call a nil
         // value (field 'k4dac0127')`).
-        class Group(val slots: MutableMap<LuaPrototype, MutableList<Int>> = IdentityHashMap())
+        class Group(val slots: MutableMap<LuaPrototype, MutableList<Int>> = IdentityMap())
         val groups = LinkedHashMap<String, Group>()
         for (prototype in chunk.prototypes) {
             for ((constantIndex, constant) in prototype.constants.withIndex()) {
@@ -173,7 +173,7 @@ object LuaKeyRenaming {
     private fun collectKeyReferences(
         prototype: LuaPrototype,
     ): Map<Int, List<Ref>> {
-        val all = IdentityHashMap<Int, MutableList<Ref>>()
+        val all = IdentityMap<Int, MutableList<Ref>>()
         for (pc in prototype.code.indices) {
             val instruction = prototype.code[pc]
             val opcodeName = instruction.opcodeName

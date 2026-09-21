@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
+import io.github.dingyi222666.luabytecode.platform.IdentitySet
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
@@ -269,7 +270,7 @@ object LuaObfuscator {
                 flattening.prototypes.filter { it.status == "INPUT_REJECTED" }.joinToString { "${it.prototypeIndex}: ${it.reasons}" })
         }
         val constants = cfg.constantEncryption?.let { constantConfig ->
-            val protected = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<LuaPrototype, Boolean>())
+            val protected = IdentitySet<LuaPrototype>()
             val beforeConstants = chunk.prototypes
             var inlineConstants = 0
             var inlinePrototypes = 0

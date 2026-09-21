@@ -19,7 +19,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.currentAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.edit.insertInstructions
 import io.github.dingyi222666.luabytecode.bytecode.edit.renameLocalAndUpvalueNames
 import io.github.dingyi222666.luabytecode.bytecode.support.LuaRegisterAnalysis
-import java.util.ArrayDeque
 
 /**
  * Tunables of [LuaRegisterObfuscator] (Pass R: register / local obfuscation).

@@ -1,4 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.IdentityMap
+import io.github.dingyi222666.luabytecode.platform.IdentitySet
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.platform.hex2
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
@@ -22,7 +24,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.currentAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaPrototypeScope
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 
-import java.util.IdentityHashMap
 
 
 /**
@@ -128,8 +129,7 @@ object LuaStringEncryptor {
             .filter { (_, p) -> result.stubPrototypes.any { it === p } }.map { it.index }
         chunk.mainPrototype.commitFrom(candidate.mainPrototype)
         val committed = chunk.prototypes
-        return result.copy(stubPrototypes = java.util.Collections.newSetFromMap(
-            IdentityHashMap<LuaPrototype, Boolean>()).apply { patchedIndices.forEach { add(committed[it]) } })
+        return result.copy(stubPrototypes = IdentitySet<LuaPrototype>().apply { patchedIndices.forEach { add(committed[it]) } })
     }
 
     private fun encryptCandidate(chunk: LuaChunk, config: StringEncryptionConfig): StringEncryptionResult {
@@ -170,10 +170,10 @@ object LuaStringEncryptor {
 
         // Upvalue slots: the main chunk hosts the decoder, every ancestor of a patched
         // prototype forwards it, so a nested stub can reach it through `GETUPVAL`.
-        val needsSlot = IdentityHashMap<LuaPrototype, Boolean>()
+        val needsSlot = IdentitySet<LuaPrototype>()
         needsSlot[main] = true // the main chunk always hosts the decoder
         markSlots(main, sites.keys, needsSlot, emptyList())
-        val slotOf = IdentityHashMap<LuaPrototype, Int>()
+        val slotOf = IdentityMap<LuaPrototype, Int>()
         assignSlots(main, null, needsSlot, slotOf)
 
         var encrypted = 0
@@ -192,7 +192,7 @@ object LuaStringEncryptor {
             rewrittenSites = rewritten,
             patchedPrototypes = sites.size,
             decoderPrototypeIndex = decoderIndex,
-            stubPrototypes = java.util.Collections.newSetFromMap(IdentityHashMap<LuaPrototype, Boolean>())
+            stubPrototypes = IdentitySet<LuaPrototype>()
                 .apply { addAll(sites.keys) },
             loweredOperandSites = lowered,
             remainingPlaintextStrings = chunk.prototypes.filter { it !== decoder }.sumOf { p ->
@@ -368,7 +368,7 @@ object LuaStringEncryptor {
     private fun markSlots(
         prototype: LuaPrototype,
         patched: Set<LuaPrototype>,
-        needsSlot: IdentityHashMap<LuaPrototype, Boolean>,
+        needsSlot: IdentitySet<LuaPrototype>,
         ancestors: List<LuaPrototype>,
     ) {
         val chain = ancestors + prototype
@@ -383,8 +383,8 @@ object LuaStringEncryptor {
     private fun assignSlots(
         prototype: LuaPrototype,
         parentSlot: Int?,
-        needsSlot: IdentityHashMap<LuaPrototype, Boolean>,
-        slotOf: IdentityHashMap<LuaPrototype, Int>,
+        needsSlot: IdentitySet<LuaPrototype>,
+        slotOf: IdentityMap<LuaPrototype, Int>,
     ) {
         var slot = parentSlot
         if (needsSlot[prototype] == true) {

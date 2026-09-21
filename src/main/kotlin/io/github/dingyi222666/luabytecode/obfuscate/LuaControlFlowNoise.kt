@@ -1,4 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
+import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
@@ -19,7 +20,6 @@ import io.github.dingyi222666.luabytecode.bytecode.analysis.skipsNextInstruction
 import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTo
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
-import java.util.IdentityHashMap
 import kotlin.math.roundToInt
 
 /**
@@ -116,7 +116,12 @@ object LuaJumpIndirection {
                 val random = ObfRandom(seedFor(config.seed, chunk, prototype))
                 val scratch = reserveScratch(candidate, scratchCount)
                 val lanes = if (runtime) 2 else 1
-                val total = Math.multiplyExact(sites.size, config.depth * lanes)
+                // Math.multiplyExact equivalent: Long intermediate + explicit overflow guard.
+                val total = run {
+                    val product = sites.size.toLong() * (config.depth * lanes).toLong()
+                    require(product <= Int.MAX_VALUE) { "junk site count overflow: $product" }
+                    product.toInt()
+                }
                 val regionStart = candidate.code.size
                 val order = shuffledIndices(total, random)
                 val sizes = IntArray(total)
@@ -537,8 +542,8 @@ private const val ENV_UPVALUE_NAME = "_ENV"
  * hold the globals are absent from the result; callers fall back to a constant
  * seed instead of emitting code that indexes an arbitrary table.
  */
-internal fun resolveEnvUpvalues(chunk: LuaChunk): IdentityHashMap<LuaPrototype, Int> {
-    val result = IdentityHashMap<LuaPrototype, Int>()
+internal fun resolveEnvUpvalues(chunk: LuaChunk): IdentityMap<LuaPrototype, Int> {
+    val result = IdentityMap<LuaPrototype, Int>()
 
     fun visit(prototype: LuaPrototype, parentEnv: Int?) {
         val named = prototype.upvalueNames.indexOfFirst { it?.utf8 == ENV_UPVALUE_NAME }
