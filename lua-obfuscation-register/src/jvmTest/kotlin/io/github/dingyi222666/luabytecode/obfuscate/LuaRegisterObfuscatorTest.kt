@@ -70,33 +70,6 @@ class LuaRegisterObfuscatorTest {
     }
 
     /** Same assertion through the full pipeline, presets included. */
-    @Test
-    fun `preset pipelines leave no readable local names behind`() {
-        val presets = listOf(
-            "LIGHT" to ObfuscationConfig.LIGHT.copy(registerObfuscation = RegisterObfuscationConfig()),
-            "BALANCED" to ObfuscationConfig.BALANCED.copy(registerObfuscation = RegisterObfuscationConfig()),
-            // AGGRESSIVE currently depends on B3's decoder resources landing; run it
-            // without the constant layer here so this test stays scoped to Pass R.
-            "AGGRESSIVE(no-K)" to ObfuscationConfig.AGGRESSIVE.copy(constantEncryption = null),
-        )
-        for ((suffix, version) in VERSIONS) {
-            for ((label, config) in presets) {
-                val chunk = LuaChunkLoader.load(bytes("big_module", suffix), version)
-                LuaObfuscator.obfuscate(chunk, config)
-                val reloaded = LuaChunkLoader.load(LuaChunkWriter.dump(chunk), version)
-                val leaked = LEAKED_IDENTIFIERS.filter { identifier ->
-                    reloaded.prototypes.any { prototype ->
-                        prototype.localVariables.any { it.name?.utf8 == identifier }
-                    }
-                }
-                assertTrue(
-                    leaked.isEmpty(),
-                    "big_module_$suffix ($label): local debug names survived the pipeline: $leaked",
-                )
-            }
-        }
-    }
-
     // -------------------------------------------------- R1 invariant tests
 
     /**

@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":lua-obfuscation-constants"))
     implementation(project(":lua-obfuscation-jumps"))
     implementation(project(":lua-obfuscation-cff"))
+    implementation(project(":lua-obfuscation-register"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))

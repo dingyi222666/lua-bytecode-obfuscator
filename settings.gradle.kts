@@ -29,4 +29,5 @@ include(":lua-obfuscation-strings")
 include(":lua-obfuscation-constants")
 include(":lua-obfuscation-jumps")
 include(":lua-obfuscation-cff")
+include(":lua-obfuscation-register")
 
