@@ -27,4 +27,6 @@ include(":lua-bytecode-analysis")
 include(":lua-obfuscation-api")
 include(":lua-obfuscation-strings")
 include(":lua-obfuscation-constants")
+include(":lua-obfuscation-jumps")
+include(":lua-obfuscation-cff")
 

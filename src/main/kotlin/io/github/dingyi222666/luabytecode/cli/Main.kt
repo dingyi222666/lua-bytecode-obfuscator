@@ -347,7 +347,7 @@ fun main(args: Array<String>) {
                     flagConfig.junkCode == null -> presetConfig.junkCode
                     else -> presetConfig.junkCode?.let { base ->
                         // granular flags only override the fields they set
-                        val flags = flagConfig.junkCode
+                        val flags = checkNotNull(flagConfig.junkCode)
                         base.copy(
                             guardedBranches = if (junkEnabled) flags.guardedBranches else base.guardedBranches,
                             predicateFamily = predicateFamily ?: base.predicateFamily,

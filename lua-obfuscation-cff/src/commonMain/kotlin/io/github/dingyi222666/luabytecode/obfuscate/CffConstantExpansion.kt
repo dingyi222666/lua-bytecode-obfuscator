@@ -5,8 +5,12 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 import io.github.dingyi222666.luabytecode.bytecode.*
 import io.github.dingyi222666.luabytecode.bytecode.analysis.*
 
-/** A restricted, call-free final constant pass with relocated CFF certificates. */
-internal object CffConstantExpansion {
+/** A restricted, call-free final constant pass with relocated CFF certificates.
+ *
+ * Owned by the CFF feature; the root orchestrator invokes it between
+ * flattening and Pass K, so it must be public across the module boundary.
+ */
+object CffConstantExpansion {
     data class Result(val constants: Int, val sites: Int, val proof: CffProofManifest,
         val paths: Int, val steps: Int)
 
