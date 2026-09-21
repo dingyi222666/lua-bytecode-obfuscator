@@ -59,8 +59,10 @@ kotlin {
             implementation(project(":lua-vm"))
             // Compose UI through explicit maven coordinates: since CMP 1.10
             // the plugin's dependency aliases are deprecated, coordinates are
-            // the supported spelling.
-            implementation("org.jetbrains.compose.material3:material3:1.12.0")
+            // the supported spelling. material3 keeps its own release line —
+            // the CMP 1.12.0 plugin catalog pins it to 1.9.0 (the 1.10+
+            // material3 line is alpha-only), so 1.9.0 is the matching stable.
+            implementation("org.jetbrains.compose.material3:material3:1.9.0")
             implementation("org.jetbrains.compose.foundation:foundation:1.12.0")
             implementation("org.jetbrains.compose.ui:ui:1.12.0")
             implementation("org.jetbrains.compose.runtime:runtime:1.12.0")
