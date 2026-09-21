@@ -39,6 +39,22 @@ kotlin {
         }
     }
 
+    // Web (wasm) target: same pure-common code, tests run on Node.js only —
+    // no browser in CI (mirrors the js target policy).
+    wasmJs {
+        nodejs {
+            testTask {
+                // LuaLcgTest brute-forces a 2M step no-repeat cycle walk; the
+                // boxed Long keys of the mocha-driven node test runner need
+                // far more than mocha's 2s default timeout (same budget as
+                // the js target above).
+                useMocha {
+                    timeout = "60000"
+                }
+            }
+        }
+    }
+
     // Native target (roadmap step 6b): the common code compiles for the
     // linux X64 toolchain unchanged; the LCG / decode-variant commonTest
     // suites run on native too.

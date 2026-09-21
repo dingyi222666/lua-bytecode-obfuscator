@@ -37,6 +37,21 @@ kotlin {
         }
     }
 
+    // Web (wasm) target: same pure-common code, tests run on Node.js only —
+    // no browser in CI (mirrors the js target policy).
+    wasmJs {
+        nodejs {
+            testTask {
+                // The pipeline contract test runs the real pass stack; on node
+                // a full obfuscation can take a few seconds (same budget as
+                // the js target above).
+                useMocha {
+                    timeout = "120000"
+                }
+            }
+        }
+    }
+
     // Native target (roadmap step 6b): the orchestrator compiles for the
     // linux X64 toolchain unchanged — :lua-cli-native assembles the native
     // CLI on top of it; the asset free commonTest contract suite runs on
