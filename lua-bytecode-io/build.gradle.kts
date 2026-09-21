@@ -6,6 +6,9 @@ plugins {
     // Version is declared in the root build.gradle.kts (apply false): the
     // plugin is already on the shared classpath via the kotlin jvm plugin.
     kotlin("multiplatform")
+    // Final acceptance (roadmap step 7): every library module is independently
+    // publishable (`publishToMavenLocal` / `publish`), not just the features.
+    `maven-publish`
 }
 
 group = "io.github.dingyi222666"

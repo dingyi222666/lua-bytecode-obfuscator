@@ -14,7 +14,9 @@
 # `0 1 2 3` for `1 2 3`), so the gate covers them without a committed fixture.
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-TOOL="$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator"
+# OBFUSCATOR_TOOL overrides the CLI binary (used by CI's differential-matrix
+# job, which shims the JVM library entry — see tools/run-differential-matrix.sh).
+TOOL="${OBFUSCATOR_TOOL:-$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator}"
 MIN_IDENTICAL=${VM_MIN_IDENTICAL:-31}
 
 TMPLOG=$(mktemp -t vm-log.XXXXXX)

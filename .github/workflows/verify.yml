@@ -44,3 +44,27 @@ jobs:
           name: test-reports
           path: build/reports/tests/
           if-no-files-found: ignore
+
+  differential-matrix:
+    name: Differential matrix (lua 5.3/5.4/5.5, probe-then-run)
+    needs: build
+    runs-on: [self-hosted, lua-obf]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (pre-seeded on runner)
+        run: |
+          JDK="$RUNNER_TOOL_CACHE/Java_Temurin-Hotspot_jdk/17.0.20.1+1/x64"
+          [ -x "$JDK/bin/java" ] || { echo "JDK not found at $JDK"; exit 1; }
+          echo "JAVA_HOME=$JDK" >> "$GITHUB_ENV"
+          echo "$JDK/bin" >> "$GITHUB_PATH"
+
+      # Roadmap step 7: the real-interpreter differential matrix. The step
+      # probes the runner for the lua 5.3.6/5.4.6/5.5.1 source builds the
+      # tools/verify-*.sh scripts expect; when they are absent it prints an
+      # explicit skip reason per missing piece and exits 0 (a skipped pillar,
+      # never a silent pass and never a red gate on unprovisioned machines).
+      # When the environment IS present it runs tools/verify-all.sh end to end.
+      - name: Real-interpreter differential matrix (probe, then verify-all)
+        run: bash tools/run-differential-matrix.sh

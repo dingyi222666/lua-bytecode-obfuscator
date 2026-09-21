@@ -12,7 +12,10 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSIONS = {'53': '5.3.6', '54': '5.4.6', '55': '5.5.1'}
-TOOL = ROOT / 'build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator'
+# OBFUSCATOR_TOOL overrides the CLI binary (CI differential-matrix job).
+TOOL = Path(os.environ.get(
+    'OBFUSCATOR_TOOL',
+    str(ROOT / 'build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator')))
 
 
 def run(argv, timeout):

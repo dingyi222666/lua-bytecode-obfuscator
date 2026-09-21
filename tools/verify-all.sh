@@ -7,7 +7,9 @@
 # Usage: sh tools/verify-all.sh
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-TOOL="$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator"
+# OBFUSCATOR_TOOL overrides the CLI binary (used by CI's differential-matrix
+# job, which shims the JVM library entry — see tools/run-differential-matrix.sh).
+TOOL="${OBFUSCATOR_TOOL:-$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator}"
 norm() { sed -E 's/[^ ,]+\.lua:[0-9]+: //g'; }
 lua_of() { case "$1" in 53) echo /tmp/lua-5.3.6/src/lua;; 54) echo /tmp/lua-5.4.6/src/lua;; 55) echo /tmp/lua-5.5.1/src/lua;; esac; }
 PLAIN=0; BAD=0

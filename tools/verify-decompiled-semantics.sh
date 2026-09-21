@@ -28,7 +28,8 @@
 # it; see the bottom of this file. Run `GATE1_SELFTEST=1 sh tools/verify-decompiled-semantics.sh`
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-TOOL="$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator"
+# OBFUSCATOR_TOOL overrides the CLI binary (CI differential-matrix job).
+TOOL="${OBFUSCATOR_TOOL:-$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator}"
 UNLUAC=${UNLUAC:-/tmp/unluac.jar}
 TIMEOUT=${GATE1_TIMEOUT:-60}
 WORK=$(mktemp -d -t gate1.XXXXXX)

@@ -61,6 +61,18 @@ dependencies {
 // path eagerly would realize the Kotlin compile tasks before jvmToolchain runs.
 val cliRuntimeClasspath = sourceSets["main"].runtimeClasspath
 
+// Differential matrix CI (tools/run-differential-matrix.sh): exports the JVM
+// library entry's runtime classpath so the verification pillar can shim the
+// historical `lua-bytecode-obfuscator` tool command with
+// io.github.dingyi222666.luabytecode.cli.MainKt. This is a tooling export, not
+// an application artifact — there is still no `application` plugin and no
+// mainClass here (the native CLI is the only default CLI, roadmap step 6b).
+tasks.register("exportCliRuntimeClasspath") {
+    doLast {
+        file("$buildDir/cli-runtime-classpath.txt").writeText(cliRuntimeClasspath.asPath)
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     doFirst {

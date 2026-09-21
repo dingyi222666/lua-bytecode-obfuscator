@@ -20,7 +20,8 @@
 #   COV_STRICT=1        : exit nonzero on WARN as well (flip on once B1 lands COV-1)
 set -u
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-TOOL="$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator"
+# OBFUSCATOR_TOOL overrides the CLI binary (CI differential-matrix job).
+TOOL="${OBFUSCATOR_TOOL:-$ROOT/build/install/lua-bytecode-obfuscator/bin/lua-bytecode-obfuscator}"
 BASELINE="$ROOT/tools/cff-coverage-baseline.txt"
 UPDATE=0
 [ "${1:-}" = "--update-baseline" ] && UPDATE=1

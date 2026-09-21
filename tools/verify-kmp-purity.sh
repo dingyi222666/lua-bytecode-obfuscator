@@ -47,6 +47,11 @@ SCOPE=(
   lua-obfuscation-register/src/commonMain
   lua-vm/src/commonMain
   lua-obfuscation-pipeline/src/commonMain
+  # Host modules have no commonMain today (jsMain / nativeMain only — those are
+  # platform-bound by design and NOT scanned). Listed so a future common source
+  # set appears in the gate automatically; missing directories are skipped.
+  lua-runtime-js/src/commonMain
+  lua-cli-native/src/commonMain
 )
 
 strip_comments() {
