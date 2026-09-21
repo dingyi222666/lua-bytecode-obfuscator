@@ -5,7 +5,6 @@ plugins {
     // (pulled in by the jvm plugin), and Gradle rejects versioned subproject
     // requests for plugins whose classpath version cannot be checked.
     id("org.jetbrains.kotlin.multiplatform") version "2.4.20" apply false
-    application
 }
 
 group = "io.github.dingyi222666"
@@ -51,9 +50,10 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-application {
-    mainClass.set("io.github.dingyi222666.luabytecode.cli.MainKt")
-}
+// Roadmap step 6b acceptance: the native CLI (:lua-cli-native) is the only
+// default CLI. The JVM entry (cli/Main.kt) stays in this module as a library
+// entry / test harness — no `application` plugin and no mainClass here anymore,
+// so no JVM application artifact is published or assembled by default.
 
 // The CLI runtime classpath, handed to VmDisablementTest (it spawns a fresh JVM
 // to prove the disablement contract; Gradle test workers do not expose a usable
