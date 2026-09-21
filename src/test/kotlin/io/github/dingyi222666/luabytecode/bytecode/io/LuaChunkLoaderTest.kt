@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.bytecode.io
 
+import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
 import io.github.dingyi222666.luabytecode.bytecode.FIXTURE_VERSIONS
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
@@ -11,7 +12,6 @@ import io.github.dingyi222666.luabytecode.bytecode.loadFixture
 import io.github.dingyi222666.luabytecode.bytecode.stringConstant
 import io.github.dingyi222666.luabytecode.bytecode.stringConstantTexts
 
-import java.nio.ByteOrder
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -30,7 +30,7 @@ class LuaChunkLoaderTest {
 
             assertEquals(version, header.version)
             assertEquals(0, header.format)
-            assertEquals(ByteOrder.LITTLE_ENDIAN, header.byteOrder)
+            assertEquals(LuaByteOrder.LITTLE, header.byteOrder)
             assertEquals(4, header.instructionSize)
             assertEquals(8, header.integerSize)
             assertEquals(8, header.numberSize)

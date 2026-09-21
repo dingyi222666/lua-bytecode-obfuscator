@@ -16,7 +16,6 @@ import io.github.dingyi222666.luabytecode.bytecode.luaInstruction
 import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.analysis.retargeted
 
-import java.io.File
 
 
 /**
@@ -458,13 +457,6 @@ class LuaChunkEditor internal constructor(private val chunk: LuaChunk) {
 fun LuaChunk.editing(): LuaChunkEditor = LuaChunkEditor(this)
 
 /**
- * Loads [input], applies [block] and writes the result to [output].
- *
- * @return the edited chunk, already dumped to [output].
- */
-fun editChunkFile(input: File, output: File, block: LuaChunkScope.() -> Unit): LuaChunk {
-    val chunk = LuaChunkLoader.load(input)
-    chunk.edit(block)
-    LuaChunkWriter.dump(chunk, output)
-    return chunk
-}
+ * `editChunkFile(input, output) { ... }` — the file based entry point — moved
+ * to `io.github.dingyi222666.luabytecode.platform.jvm.editChunkFile` so this
+ * module stays free of `java.io`; same signature and call syntax.

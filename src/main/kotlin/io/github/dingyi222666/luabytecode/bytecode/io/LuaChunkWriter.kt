@@ -7,13 +7,9 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.LuaVarintStyle
+import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
 import io.github.dingyi222666.luabytecode.bytecode.edit.edit
 import io.github.dingyi222666.luabytecode.bytecode.edit.replacing
-
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.OutputStream
-import java.nio.ByteOrder
 
 
 /** `LUA_SIGNATURE` — `ESC "Lua"`. */
@@ -68,32 +64,47 @@ object LuaChunkWriter {
 
     /** Dumps a chunk into a fresh byte array. */
     @JvmStatic
-    fun dump(chunk: LuaChunk): ByteArray {
-        val output = ByteArrayOutputStream()
-        dump(chunk, output)
-        return output.toByteArray()
+    fun dump(chunk: LuaChunk): ByteArray = ChunkDumper(chunk).dump()
+}
+
+/**
+ * Growable byte buffer backing the dumper — the common-stdlib replacement of
+ * the JVM stream class (the writer must stay free of `java.io` imports for
+ * the KMP module split; see `docs/roadmap-kmp-modules.md`).
+ */
+private class ByteSink {
+    private var buffer = ByteArray(256)
+    private var count = 0
+
+    fun write(value: Int) {
+        ensure(1)
+        buffer[count++] = (value and 0xFF).toByte()
     }
 
-    /** Dumps a chunk to a file, replacing its content. */
-    @JvmStatic
-    fun dump(chunk: LuaChunk, file: File) {
-        file.writeBytes(dump(chunk))
+    fun write(bytes: ByteArray) {
+        ensure(bytes.size)
+        bytes.copyInto(buffer, count)
+        count += bytes.size
     }
 
-    /** Dumps a chunk to a stream (the stream is flushed, not closed). */
-    @JvmStatic
-    fun dump(chunk: LuaChunk, output: OutputStream) {
-        ChunkDumper(chunk, output).dump()
+    fun toByteArray(): ByteArray = buffer.copyOf(count)
+
+    private fun ensure(extra: Int) {
+        if (count + extra <= buffer.size) return
+        var newSize = buffer.size
+        while (newSize < count + extra) newSize *= 2
+        buffer = buffer.copyOf(newSize)
     }
 }
 
 private class ChunkDumper(
     private val chunk: LuaChunk,
-    private val output: OutputStream,
 ) {
 
+    private val output = ByteSink()
+
     private val version = chunk.header.version
-    private val byteOrder: ByteOrder = chunk.header.byteOrder
+    private val byteOrder: LuaByteOrder = chunk.header.byteOrder
     private val varintStyle = version.varintStyle
 
     /** 5.5 string reuse table: content -> 1 based index. */
@@ -103,11 +114,11 @@ private class ChunkDumper(
     /** Number of bytes written so far, needed for the 5.5 alignment padding. */
     private var offset = 0
 
-    fun dump() {
+    fun dump(): ByteArray {
         writeHeader()
         writeByte(chunk.mainPrototype.upvalues.size)
         writePrototype(chunk.mainPrototype, null)
-        output.flush()
+        return output.toByteArray()
     }
 
     // ------------------------------------------------------------------ header
@@ -363,7 +374,7 @@ private class ChunkDumper(
     // ------------------------------------------------------------- primitives
 
     private fun writeByte(value: Int) {
-        output.write(value and 0xFF)
+        output.write(value)
         offset++
     }
 
@@ -374,7 +385,7 @@ private class ChunkDumper(
 
     private fun writeUnsigned(value: Long, width: Int) {
         val bytes = ByteArray(width)
-        if (byteOrder == ByteOrder.BIG_ENDIAN) {
+        if (byteOrder == LuaByteOrder.BIG) {
             for (i in 0 until width) {
                 bytes[i] = (value ushr (8 * (width - 1 - i))).toByte()
             }

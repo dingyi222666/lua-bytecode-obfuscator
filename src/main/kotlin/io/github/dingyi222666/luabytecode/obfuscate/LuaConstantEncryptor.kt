@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
+import io.github.dingyi222666.luabytecode.platform.hex2
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
@@ -591,7 +592,7 @@ object LuaConstantEncryptor {
         envIndex: Int,
         cipherSpec: ConstCipher.Spec,
     ): LuaPrototype {
-        val resource = "/obfuscator/decode_num_%02x.luac".format(version.versionByte)
+        val resource = "/obfuscator/decode_num_" + hex2(version.versionByte) + ".luac"
         val bytes = LuaConstantEncryptor::class.java.getResourceAsStream(resource)?.use { it.readBytes() }
             ?: throw LuaBytecodeFormatException("missing bundled decoder resource $resource")
         val chunk = LuaChunkLoader.load(bytes, version)

@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.bytecode.io
 
+import io.github.dingyi222666.luabytecode.platform.jvm.dump
+import io.github.dingyi222666.luabytecode.platform.jvm.load
 import io.github.dingyi222666.luabytecode.bytecode.ALL_FIXTURES
 import io.github.dingyi222666.luabytecode.bytecode.LuaAbsoluteLineInfo
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException

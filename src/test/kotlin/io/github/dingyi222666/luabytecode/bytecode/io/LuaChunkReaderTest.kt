@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.bytecode.io
 
+import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaVarintStyle
 
@@ -7,12 +8,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import java.nio.ByteOrder
 
 
 class LuaChunkReaderTest {
 
-    private fun reader(vararg bytes: Int, byteOrder: ByteOrder = ByteOrder.LITTLE_ENDIAN) =
+    private fun reader(vararg bytes: Int, byteOrder: LuaByteOrder = LuaByteOrder.LITTLE) =
         LuaChunkReader(ByteArray(bytes.size) { bytes[it].toByte() }, byteOrder)
 
     @Test
@@ -60,11 +60,11 @@ class LuaChunkReaderTest {
     fun `reads big endian signed integers`() {
         assertEquals(
             -32768L,
-            reader(0x80, 0x00, byteOrder = ByteOrder.BIG_ENDIAN).readSigned(2),
+            reader(0x80, 0x00, byteOrder = LuaByteOrder.BIG).readSigned(2),
         )
         assertEquals(
             0x5678L,
-            reader(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x78, byteOrder = ByteOrder.BIG_ENDIAN)
+            reader(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x78, byteOrder = LuaByteOrder.BIG)
                 .readSigned(8),
         )
     }

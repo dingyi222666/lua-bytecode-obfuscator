@@ -1,5 +1,8 @@
 package io.github.dingyi222666.luabytecode.bytecode.edit
 
+import io.github.dingyi222666.luabytecode.platform.jvm.dump
+import io.github.dingyi222666.luabytecode.platform.jvm.editChunkFile
+import io.github.dingyi222666.luabytecode.platform.jvm.load
 import io.github.dingyi222666.luabytecode.bytecode.ALL_FIXTURES
 import io.github.dingyi222666.luabytecode.bytecode.FIXTURE_VERSIONS
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion

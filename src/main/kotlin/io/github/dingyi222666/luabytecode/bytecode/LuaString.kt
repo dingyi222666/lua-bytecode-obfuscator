@@ -1,8 +1,5 @@
 package io.github.dingyi222666.luabytecode.bytecode
 
-
-import java.nio.charset.StandardCharsets
-
 /**
  * A Lua string value, kept as raw bytes.
  *
@@ -20,12 +17,16 @@ class LuaString(val bytes: ByteArray) {
 
     /** Best effort UTF-8 decoding (malformed sequences are replaced with U+FFFD). */
     val utf8: String by lazy(LazyThreadSafetyMode.NONE) {
-        String(bytes, StandardCharsets.UTF_8)
+        bytes.decodeToString()
     }
 
     /** Lossless decoding: byte `b` becomes the char `U+00b`. */
     val latin1: String by lazy(LazyThreadSafetyMode.NONE) {
-        String(bytes, StandardCharsets.ISO_8859_1)
+        val chars = CharArray(bytes.size)
+        for (i in bytes.indices) {
+            chars[i] = (bytes[i].toInt() and 0xFF).toChar()
+        }
+        chars.concatToString()
     }
 
     operator fun get(index: Int): Byte = bytes[index]
@@ -38,10 +39,8 @@ class LuaString(val bytes: ByteArray) {
     override fun toString(): String = utf8
 
     companion object {
-        @JvmStatic
-        fun of(text: String): LuaString = LuaString(text.toByteArray(StandardCharsets.UTF_8))
+        fun of(text: String): LuaString = LuaString(text.encodeToByteArray())
 
-        @JvmStatic
         fun of(bytes: ByteArray): LuaString = LuaString(bytes)
     }
 }

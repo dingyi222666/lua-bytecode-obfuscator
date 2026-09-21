@@ -4,6 +4,7 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.LuaInstruction
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
+import io.github.dingyi222666.luabytecode.platform.hex2
 
 /**
  * Renders a parsed [LuaChunk] as readable text, comparable to `luac -l` output
@@ -170,7 +171,7 @@ object LuaChunkPrinter {
                 char == '\n' -> builder.append("\\n")
                 char == '\r' -> builder.append("\\r")
                 char == '\t' -> builder.append("\\t")
-                char.code < 0x20 || char.code == 0x7F -> builder.append("\\x%02x".format(char.code))
+                char.code < 0x20 || char.code == 0x7F -> builder.append("\\x" + hex2(char.code))
                 else -> builder.append(char)
             }
         }

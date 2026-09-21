@@ -1,9 +1,8 @@
 package io.github.dingyi222666.luabytecode.bytecode.io
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
+import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
 import io.github.dingyi222666.luabytecode.bytecode.LuaVarintStyle
-
-import java.nio.ByteOrder
 
 
 /**
@@ -16,7 +15,7 @@ import java.nio.ByteOrder
 class LuaChunkReader(
     private val data: ByteArray,
     /** Byte order of the chunk; the loader switches it after reading `LUAC_INT`. */
-    var byteOrder: ByteOrder = ByteOrder.LITTLE_ENDIAN,
+    var byteOrder: LuaByteOrder = LuaByteOrder.LITTLE,
 ) {
 
     /** Current read offset inside [data]. */
@@ -68,7 +67,7 @@ class LuaChunkReader(
         }
         val bytes = readBytes(width)
         var value = 0L
-        if (byteOrder == ByteOrder.BIG_ENDIAN) {
+        if (byteOrder == LuaByteOrder.BIG) {
             for (i in 0 until width) {
                 value = (value shl 8) or (bytes[i].toLong() and 0xFF)
             }

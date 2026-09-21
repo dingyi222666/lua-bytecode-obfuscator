@@ -3,6 +3,7 @@ package io.github.dingyi222666.luabytecode.bytecode.io
 import io.github.dingyi222666.luabytecode.bytecode.LuaAbsoluteLineInfo
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
+import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunkHeader
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
@@ -12,10 +13,8 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.LuaUpvalue
 import io.github.dingyi222666.luabytecode.bytecode.LuaVarintStyle
-
-import java.io.File
-import java.io.InputStream
-import java.nio.ByteOrder
+import io.github.dingyi222666.luabytecode.platform.hex2Upper
+import io.github.dingyi222666.luabytecode.platform.hexUpper
 
 
 /** `LUA_SIGNATURE` — `ESC "Lua"`, the first four bytes of every chunk. */
@@ -70,18 +69,6 @@ private const val MAX_PROTOTYPE_DEPTH = 1000
  * @see LuaChunkWriter
  */
 object LuaChunkLoader {
-
-    /** Loads a chunk from a file. */
-    @JvmStatic
-    @JvmOverloads
-    fun load(file: File, expectedVersion: LuaBytecodeVersion? = null): LuaChunk =
-        load(file.readBytes(), expectedVersion)
-
-    /** Loads a chunk from a stream (fully read into memory). */
-    @JvmStatic
-    @JvmOverloads
-    fun load(input: InputStream, expectedVersion: LuaBytecodeVersion? = null): LuaChunk =
-        load(input.readBytes(), expectedVersion)
 
     /**
      * Loads a chunk from raw bytes.
@@ -162,10 +149,9 @@ private class ChunkLoader(
         val versionByte = reader.readByte()
         val version = LuaBytecodeVersion.fromVersionByte(versionByte)
             ?: throw LuaBytecodeFormatException(
-                "unsupported bytecode version 0x%02X; supported versions are %s".format(
-                    versionByte,
+                "unsupported bytecode version 0x" +
+                    hex2Upper(versionByte) + "; supported versions are " +
                     LuaBytecodeVersion.supportedVersionsText(),
-                ),
                 versionOffset,
             )
         if (expectedVersion != null && expectedVersion != version) {
@@ -246,10 +232,8 @@ private class ChunkLoader(
         val checkInstruction = reader.readUnsigned(instructionSize)
         if (checkInstruction != LUAC_INST_5_5) {
             throw LuaBytecodeFormatException(
-                "instruction format mismatch (expected 0x%X, read 0x%X)".format(
-                    LUAC_INST_5_5,
-                    checkInstruction,
-                ),
+                "instruction format mismatch (expected 0x" + hexUpper(LUAC_INST_5_5) +
+                    ", read 0x" + hexUpper(checkInstruction),
                 instructionProbeOffset,
             )
         }
@@ -259,7 +243,7 @@ private class ChunkLoader(
         val checkLuaInteger = reader.readSigned(integerSize)
         if (checkLuaInteger != LUAC_INT_5_5) {
             throw LuaBytecodeFormatException(
-                "Lua integer format mismatch (expected %d, read %d)".format(LUAC_INT_5_5, checkLuaInteger),
+                "Lua integer format mismatch (expected $LUAC_INT_5_5, read $checkLuaInteger)",
                 integerProbeOffset,
             )
         }
@@ -289,14 +273,14 @@ private class ChunkLoader(
     private fun probeInteger(expected: Long, width: Int): Long {
         val offset = reader.position
         var value = reader.readSigned(width)
-        if (value != expected && reader.byteOrder == ByteOrder.LITTLE_ENDIAN) {
+        if (value != expected && reader.byteOrder == LuaByteOrder.LITTLE) {
             reader.seek(offset)
-            reader.byteOrder = ByteOrder.BIG_ENDIAN
+            reader.byteOrder = LuaByteOrder.BIG
             value = reader.readSigned(width)
         }
         if (value != expected) {
             throw LuaBytecodeFormatException(
-                "integer format mismatch (expected %d, read %d)".format(expected, value),
+                "integer format mismatch (expected $expected, read $value)",
                 offset,
             )
         }
@@ -406,7 +390,7 @@ private class ChunkLoader(
                 0x13 -> LuaConstant.Integer(reader.readSigned(header.integerSize))
                 0x04, 0x14 -> LuaConstant.Str(requiredString(offset))
                 else -> throw LuaBytecodeFormatException(
-                    "unknown 5.3 constant tag 0x%02X".format(tag),
+                    "unknown 5.3 constant tag 0x" + hex2Upper(tag),
                     offset,
                 )
             }
@@ -419,7 +403,7 @@ private class ChunkLoader(
                 0x13 -> LuaConstant.Number(reader.readLuaNumber(header.numberSize))
                 0x04, 0x14 -> LuaConstant.Str(requiredString(offset))
                 else -> throw LuaBytecodeFormatException(
-                    "unknown 5.4 constant tag 0x%02X".format(tag),
+                    "unknown 5.4 constant tag 0x" + hex2Upper(tag),
                     offset,
                 )
             }
@@ -432,7 +416,7 @@ private class ChunkLoader(
                 0x13 -> LuaConstant.Number(reader.readLuaNumber(header.numberSize))
                 0x04, 0x14 -> LuaConstant.Str(requiredString(offset))
                 else -> throw LuaBytecodeFormatException(
-                    "unknown 5.5 constant tag 0x%02X".format(tag),
+                    "unknown 5.5 constant tag 0x" + hex2Upper(tag),
                     offset,
                 )
             }

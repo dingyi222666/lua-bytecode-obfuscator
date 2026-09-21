@@ -1,5 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
+import io.github.dingyi222666.luabytecode.platform.hexPadded
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
@@ -222,7 +223,7 @@ object LuaRegisterObfuscator {
 
     private fun hex4(random: ObfRandom): String {
         val value = random.nextInt(1 shl (4 * NAME_SUFFIX_CHARS))
-        return "%0${NAME_SUFFIX_CHARS}x".format(value)
+        return hexPadded(value.toLong(), NAME_SUFFIX_CHARS)
     }
 
     // ------------------------------------------------------------------- R1

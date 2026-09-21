@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.cli
 
+import io.github.dingyi222666.luabytecode.platform.jvm.dump
+import io.github.dingyi222666.luabytecode.platform.jvm.load
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeFormatException
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.edit.edit
