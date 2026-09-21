@@ -9,7 +9,7 @@
 |---|---|---|---|
 | 1 | 第 1 步 | 纯数据结构、opcode、常量和 prototype 移入 `:lua-bytecode-model`（commonMain） | 部分完成（2026-09-21） |
 | 2 | 第 2 步 | `java.io` / `java.nio` / `java.util.Random` / `MessageDigest` 等替换为 expect/actual 或平台接口 | **完成（2026-09-21）** |
-| 3 | 第 3 步 | reader/writer 与 editor DSL 拆成独立模块（保留包名兼容 facade） | 未开始 |
+| 3 | 第 3 步 | reader/writer 与 editor DSL 拆成独立模块（保留包名兼容 facade） | **完成（2026-09-21）** |
 | 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | 未开始 |
 | 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | 未开始 |
 | 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | 未开始 |
@@ -103,6 +103,78 @@
 
 - 最新 CI run 绿（build + 225 原测试 + ObfRandomParity/Md5Parity/IdentityCollections 新测试 + KMP purity gate 步骤）。
 - `grep java.` 在 bytecode/obfuscate/vm/platform(除 platform/jvm) 无代码级残留（仅 KDoc 描述性文字，门禁剥离注释后放行）。
+
+## Phase 3：:lua-platform / :lua-bytecode-io / :lua-bytecode-edit（2026-09-21 完成）
+
+### 模块与 source set 现状
+
+```text
+:lua-platform        commonMain: platform.{Hex,IdentityCollections,Md5,ObfRandom,PlatformIo}
+:lua-bytecode-model  commonMain: 上表 Phase 1 五文件 + LuaByteOrder/LuaString/LuaChunkHeader/
+                                 LuaConstant/LuaChunk/LuaPrototype；commonTest: LuaInstructionTest
+:lua-bytecode-io     commonMain: bytecode.io.{LuaChunkReader,LuaChunkWriter,LuaChunkLoader}
+                     jvmMain:    platform.jvm.{load(File/InputStream), dump(chunk→File/OutputStream)}
+                     commonTest: LuaChunkReaderTest；jvmTest: Writer/Error/Loader 三测试 + TestFixtures 子集
+:lua-bytecode-edit   commonMain: bytecode.edit 四文件 + bytecode.analysis.{LuaCodeRelocation,LuaLineInfo}
+                     jvmMain:    platform.jvm.editChunkFile（EditChunkFileJvm.kt）
+                     jvmTest:    LuaChunkEditTest + TestFixtures 子集
+根模块               main: bytecode/{analysis 剩余,print,support}、obfuscate、vm、platform/jvm
+                           （JvmPlatform + EditChunkFileJvm 已移出，cli/legacy/decompile 照旧）
+```
+
+依赖方向（无环）：`platform ← model ← io ← 根`、`model ← edit(jvmMain→io) ← 根`。
+全部新模块 `kotlin("multiplatform")`、`jvm()` target、`jvmToolchain(17)`、仅 stdlib + project 依赖；
+`jvmTest` 统一 `useJUnitPlatform()`。settings.gradle.kts include 四个新模块，
+根 build.gradle.kts 显式 `implementation` platform/model/io/edit。
+
+### 关键决策
+
+1. **:lua-platform 独立模块**：platform 包的 common 部分（Hex/Md5/ObfRandom/IdentityCollections +
+   PlatformIo 四接缝）整体 `git mv` 进 `:lua-platform`，包名不变，obfuscate/vm 零改动。
+   `platform/jvm`（JvmPlatform.install()）留在根模块继续装配。
+2. **LuaCodeRelocation / LuaLineInfo 归属 edit**：`retargeted` / `setAbsoluteLines` 是 edit DSL
+   （LuaChunkDsl.replaceCode / LuaInstructionStream / LuaPrototypeEdit）的直接基础，随 edit 进
+   commonMain（包名仍 `bytecode.analysis`）。`relocated()` 依赖留根的 `jumpTarget`（LuaConstantReferences.kt），
+   故它移入该文件而不是 edit 模块；Phase 4 迁移 analysis 时再整体调整。
+3. **editChunkFile 归 edit 模块 jvmMain**：它组合 edit DSL + io 适配器，放 io 会造成 io→edit 反向依赖；
+   放 edit jvmMain（依赖 io）是唯一的非环解。io 与 edit 仍是兄弟模块（edit 仅 jvmMain 依赖 io）。
+4. **BundledChunkSource 的 classpath 实现留在根 JvmPlatform**：它服务 obfuscate/vm 的 decoder 资产场景，
+   与 chunk 读写 io 无关，不迁入 `:lua-bytecode-io`。
+5. **测试归属**：纯测试进 commonTest（LuaChunkReaderTest、LuaInstructionTest）；fixture 型测试进
+   jvmTest（classpath 加载 `getResourceAsStream` 目前是 JVM 专属）。TestFixtures.kt 以“复制子集”方式
+   落到 io/edit 的 jvmTest（root 原件保留给集成测试），21 个 luac fixture + hello.lua 同步复制。
+   `root 既有测试零改动`成立（除 LuaLineInfoTest 补一条显式 import）；唯一的测试改写是
+   LuaChunkLoaderTest 两处 `stringConstants()`（edit 包扩展）改用常量表过滤，避免 io 测试反向依赖 edit。
+6. **门面类名冲突教训（重要）**：根模块 main 输出与 `:lua-bytecode-io` jvm jar 各有一个
+   `platform.jvm.LuaChunkIoJvmKt`（同包同名 Kotlin 文件门面）。根 main 编译只见 io jar → 正常；
+   测试编译 classpath 同时有根 main 输出 + io jar → 同名门面互相遮蔽，`load/dump` 扩展在
+   `:compileTestKotlin` 消失（Unresolved reference）。解法：同包文件名必须跨模块唯一——根侧文件改名
+   `EditChunkFileJvm.kt`（edit 模块侧沿用此名并加注释）。后续拆分新文件都要遵守该约定。
+
+### 工具与 CI
+
+- `tools/verify-kmp-purity.sh`：SCOPE 增加四个新模块的 `src/commonMain`，白名单扩为
+  `*/platform/jvm/*` 与 `*/src/jvmMain/*`；门禁继续在 verify.yml 的 Build 之后执行。
+
+### Phase 3 验证
+
+按提交序列逐个 CI 验证（每步 push 后 `gh run watch` 至绿）：
+
+- `:lua-platform`：run 35553848059
+- model 补齐：run 35554238402
+- `:lua-bytecode-io`：run 35555210261（第一次 35554924877 红，门面冲突，见决策 6）
+- `:lua-bytecode-edit`：run 35555831806（第一次 35555491636 红，`relocated` 依赖 `jumpTarget`，见决策 2；
+  另一次 checkout 网络抖动按预案 rerun 恢复）
+
+### Phase 3 遗留项
+
+- `bytecode/analysis` 剩余（LuaConstantReferences/LuaDataFlow）与 `bytecode/print`、`bytecode/support`
+  仍在根模块，按计划随 roadmap 第 4 步（analysis/feature 拆分）迁移。
+- 各模块目前只有 `jvm()` target；js/native 加入时需给 fixture 加载做 expect/actual
+  （`getResourceAsStream` 目前锁死 jvmTest）。
+- io/edit 的 `implementation(project(...))` 依赖尚未提升为 `api`；Phase 4/5 若把模块发布为独立
+  artifact，需要按公共 API 暴露面重新标注 api/implementation。
+- 根测试 TestFixtures.kt 与 io/edit 副本三处并存（有意为之，见决策 5）；修改 fixture 清单时需同步。
 
 ## Phase 1：问题记录（历史）
 

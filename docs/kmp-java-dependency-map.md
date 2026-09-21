@@ -29,7 +29,7 @@ Kotlin 块注释按嵌套语义剥离，KDoc 中描述"替代了什么"的文字
 | `java.util.ArrayDeque` | `kotlin.collections.ArrayDeque` | LuaRegisterObfuscator ×2 | `add` / `removeFirst` 语义一致 |
 | `Double.doubleToLongBits` | `doubleToCanonicalBits`（NaN → `0x7ff8000000000000`，其余 `toRawBits()`） | LuaVmProgram encodeConstantBytes | 决策：保留 doubleToLongBits 的 NaN 规范化而非直接 `toRawBits()`，保证 NaN 常量的加密 payload 与既有输出字节一致（否则只会改变 NaN 输入的行为，但为了稳妥选择零行为差） |
 | `java.io.ByteArrayOutputStream` | `List<Byte>` + `toByteArray()`（Pass K blob）/ 写手 `ByteSink`（writer） | LuaConstantEncryptor、LuaChunkWriter | |
-| `java.io.File/InputStream/OutputStream`（io 层便捷重载） | `platform.jvm.LuaChunkIoJvm` 扩展（同名同调用形态） | LuaChunkLoader/File+Stream、LuaChunkWriter/File+Stream、`editChunkFile` | 核心 `load(ByteArray)` / `dump(chunk): ByteArray` 留在 bytecode.io；调用方补 `platform.jvm` import |
+| `java.io.File/InputStream/OutputStream`（io 层便捷重载） | Phase 3 起拆分：load(File/InputStream)、dump(chunk→File/OutputStream) 在 `:lua-bytecode-io` 的 jvmMain；`editChunkFile` 在 `:lua-bytecode-edit` 的 jvmMain（`EditChunkFileJvm.kt`）——均保留 `platform.jvm` 包名与调用形态 | LuaChunkLoader/File+Stream、LuaChunkWriter/File+Stream、`editChunkFile` | 核心 `load(ByteArray)` / `dump(chunk): ByteArray` 留在 bytecode.io（commonMain）；调用方 import 不变 |
 | `java.security.SecureRandom` | `platform.SecureEntropy` 接口 + `platform.jvm.JvmPlatform` 实现 | SeedPolicy（无 --seed 路径）、cli/Main VM 分支 | 公共默认 = `kotlin.random.Random.Default.nextLong()`（进程内新鲜熵，PRED-2 语义保持） |
 | classpath 资产 `/obfuscator/decode_*.luac` | `platform.BundledChunkSource` 接口 + JVM classpath 实现 | LuaStringEncryptor、LuaConstantEncryptor | 公共默认 = 无资产（返回 null） |
 | `System.getenv` / `System.err`（44 处调试开关与日志） | `platform.DebugLog`（enabled/value/log） | CFF、K、B4、KEY、JUNK、XPASS、VM 等全部 pass | 公共默认 = 全关且静默 |
@@ -62,7 +62,7 @@ Kotlin 块注释按嵌套语义剥离，KDoc 中描述"替代了什么"的文字
 | `TraceSink` | 同上；仅 jvmMain 提供文件哨兵实现，其余平台默认丢弃 |
 | `ObfRandom` | 纯 common，原样进 commonMain（已是 `kotlin.random.Random` 子类） |
 | `LuaByteOrder` / `LuaString` / `Md5` / `IdentitySet` / `IdentityMap` / `Hex` | 纯 common，原样搬入 `:lua-bytecode-model` / 公共模块 |
-| `LuaChunkIoJvm`（load/dump 文件扩展） | 留在 jvmMain；commonMain 只保留 `load(ByteArray)` / `dump(): ByteArray` |
+| `LuaChunkIoJvm`（load/dump 文件扩展） | Phase 3 已拆：io 扩展 → `:lua-bytecode-io` jvmMain，`editChunkFile` → `:lua-bytecode-edit` jvmMain；commonMain 只保留 `load(ByteArray)` / `dump(): ByteArray`。注意：同包的 Kotlin 文件名必须跨模块唯一，否则 JVM 门面类同名互相遮蔽（根侧文件已改名 `EditChunkFileJvm.kt`） |
 
 ## 已知遗留风险
 
