@@ -37,6 +37,24 @@ jobs:
       - name: KMP purity gate
         run: bash tools/verify-kmp-purity.sh
 
+      - name: Web dist smoke
+        run: |
+          ./gradlew :lua-runtime-js:webDist --stacktrace
+          BUNDLE=apps/lua-runtime-js/build/web/luabytecode-runtime.js
+          # The worker importScripts the single UMD bundle, so the nodejs-target
+          # IR linker must emit one whole-program file: with per-module
+          # granularity the bundle is just the ~30K orphan entry module with no
+          # pipeline inside (regression guard for
+          # kotlin.js.ir.output.granularity=whole-program in gradle.properties).
+          test -f "$BUNDLE" || { echo "missing bundle: $BUNDLE"; exit 1; }
+          SIZE=$(wc -c < "$BUNDLE")
+          echo "bundle bytes: $SIZE"
+          [ "$SIZE" -gt 500000 ] || { echo "bundle too small ($SIZE bytes): per-module IR output regression"; exit 1; }
+          grep -q obfuscateLuaChunk "$BUNDLE" || { echo "obfuscateLuaChunk export missing from bundle"; exit 1; }
+          test -f apps/lua-runtime-js/build/web/web/index.html || { echo "missing web/index.html"; exit 1; }
+          test -f apps/lua-runtime-js/build/web/web/worker.js || { echo "missing web/worker.js"; exit 1; }
+          echo "web dist ok: $BUNDLE ($SIZE bytes)"
+
       - name: Upload test reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
