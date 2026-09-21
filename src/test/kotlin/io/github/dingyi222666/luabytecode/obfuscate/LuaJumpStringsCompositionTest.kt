@@ -1,6 +1,6 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 
-import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
+import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.analysis.basicBlockStarts
 import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTargets
 import io.github.dingyi222666.luabytecode.bytecode.FIXTURE_VERSIONS
@@ -34,7 +34,7 @@ class LuaJumpStringsCompositionTest {
         }
     }
 
-    private fun assertTargetsValid(name: String, chunk: LuaPrototype) {
+    private fun assertTargetsValid(name: String, chunk: LuaChunk) {
         for (prototype in chunk.prototypes) {
             val starts = prototype.basicBlockStarts()
             for ((pc, target) in prototype.jumpTargets()) {

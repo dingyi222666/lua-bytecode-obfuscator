@@ -123,14 +123,17 @@ class LuaRealWorldObfuscationTest {
                         "${name}_$suffix: shared key literal(s) must stay readable, but $lost disappeared",
                     )
                 }
-                assertTrue(report.stringEncryption != null, "${name}_$suffix: string encryption did not run")
+                // stringEncryption is a public val of the api module: bind it to
+                // a local (smart casts on other-module properties are impossible)
+                val strings = report.stringEncryption
+                assertTrue(strings != null, "${name}_$suffix: string encryption did not run")
                 if (encryptable.isNotEmpty()) {
                     assertTrue(
-                        report.stringEncryption.encryptedConstants > 0,
+                        strings.encryptedConstants > 0,
                         "${name}_$suffix: ${encryptable.size} encryptable literal(s) but none was encrypted",
                     )
                 }
-                anyEncrypted = anyEncrypted || report.stringEncryption.encryptedConstants > 0
+                anyEncrypted = anyEncrypted || strings.encryptedConstants > 0
                 assertFalse(dumped.isEmpty())
             }
         }

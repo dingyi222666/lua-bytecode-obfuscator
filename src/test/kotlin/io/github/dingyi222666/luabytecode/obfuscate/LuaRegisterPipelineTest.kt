@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
  * Cross-pass integration acceptance (stays with the root orchestrator): Pass R
  * name rewrite must survive every preset pipeline, i.e. the other passes must
  * not re-introduce readable local debug names and R must run after the passes
- * that append stub blocks. See the pass-level tests in :lua-obfuscation-register.
+ * that append stub blocks. Pass-level tests live in :lua-obfuscation-register.
  */
 class LuaRegisterPipelineTest {
 
@@ -39,7 +39,6 @@ class LuaRegisterPipelineTest {
                 )
             }
         }
-    }
     }
 
     private companion object {
