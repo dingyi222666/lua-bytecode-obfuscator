@@ -244,11 +244,14 @@ fun main(args: Array<String>) {
                 null -> ObfRandom(Platform.entropy.nextLong())
                 else -> ObfRandom(masterSeed)
             }
-            val module = io.github.dingyi222666.luabytecode.vm.LuaVmObfuscation.emitModule(
+            // Roadmap step 5 contract: the VM report distinguishes source.cff,
+            // vm.lift, interpreter.source.cff and the not-implemented target
+            // bytecode-level CFF (LuaVmObfuscation.CapabilityReport.categories).
+            val emission = io.github.dingyi222666.luabytecode.vm.LuaVmObfuscation.emitModuleDetailed(
                 chunk,
                 vmRandom,
             )
-            if (module == null) {
+            if (emission == null) {
                 // A refusal is a *correct* outcome (the chunk is outside the modelled subset),
                 // never a wrong program. It exits 3 so a caller can tell it apart from a crash
                 // (any other non zero status) and from success: `tools/verify-vm.sh` scores
@@ -258,8 +261,16 @@ fun main(args: Array<String>) {
                 System.err.println("error: this chunk uses instructions outside the VM subset")
                 kotlin.system.exitProcess(3)
             }
-            java.io.File(vmOutPath!!).writeText(module)
+            java.io.File(vmOutPath!!).writeText(emission.module)
             println("wrote VM module to $vmOutPath")
+            println("VM protection report (${emission.report.translator}):")
+            for (capability in emission.report.categories) {
+                println("  ${capability.id}: ${capability.status.label} - ${capability.details}")
+            }
+            println(
+                "  staged: ${emission.report.staged}, complete: ${emission.report.complete} " +
+                    "(target bytecode-level CFF is not implemented)",
+            )
             return
         }
         if (summaryOnly) {

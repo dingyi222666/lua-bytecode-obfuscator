@@ -15,12 +15,17 @@ import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
  */
 internal fun loadVmFixture(name: String, version: LuaBytecodeVersion): LuaChunk =
     LuaChunkLoader.load(
-        checkNotNull(VmTestChunks.RESOURCES.getResourceAsStream("/real/ctor/$name")) {
+        checkNotNull(VmTestChunks.RESOURCE_CLASS.getResourceAsStream("/real/ctor/$name")) {
             "missing fixture /real/ctor/$name in :lua-vm jvmTest resources"
         }.use { it.readBytes() },
         version,
     )
 
 private object VmTestChunks {
-    val RESOURCES: ClassLoader = VmTestChunks::class.java.classLoader
+    /**
+     * Lookups go through [Class.getResourceAsStream], which strips the leading
+     * slash before delegating; `ClassLoader.getResourceAsStream` would take the
+     * "/real/..." name literally and never find it.
+     */
+    val RESOURCE_CLASS: Class<*> = VmTestChunks::class.java
 }

@@ -38,7 +38,12 @@ import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationReport
  *    from its slot index, so the decoder cannot be sliced out and replayed standalone.
  */
 object LuaVmObfuscation {
-    enum class CapabilityStatus { APPLIED, REFUSED, NOT_IMPLEMENTED }
+    enum class CapabilityStatus(val label: String) {
+        APPLIED("applied"),
+        REFUSED("refused"),
+        /** Planned but not built: reported as `not_implemented`, never left implicit. */
+        NOT_IMPLEMENTED("not_implemented"),
+    }
 
     data class Capability(
         val id: String,
@@ -46,20 +51,57 @@ object LuaVmObfuscation {
         val details: String,
     )
 
-    /** Build-time manifest for the three distinct VM protection layers. */
+    /**
+     * Build-time manifest of the VM protection layers.
+     *
+     * Contract (docs/roadmap-kmp-modules.md, acceptance): a VM report MUST always
+     * distinguish `source.cff`, `vm.lift`, `interpreter.source.cff` and the
+     * not-implemented target bytecode-level CFF. [categories] lists exactly those
+     * four entries in that order; [inputObfuscation] is the staging context that
+     * produced the lifted input (it is not one of the four).
+     */
     data class CapabilityReport(
         val inputObfuscation: Capability,
+        /** 1/4 `source.cff`: CFF on the input chunk (source or bytecode level, existing pipeline). */
         val sourceCff: Capability,
+        /** 2/4 `vm.lift`: input chunk -> private VM ISA (encrypted program + constant pool). */
         val lift: Capability,
-        val interpreterCff: Capability,
-        val translator: String,
+        /** 3/4 `interpreter.source.cff`: staging obfuscation of the generated Lua interpreter SOURCE. */
+        val interpreterSourceCff: Capability,
+        /**
+         * 4/4 target bytecode-level CFF of the generated interpreter — **not implemented**.
+         * It reports `not_implemented` until the generated host is compiled to target
+         * bytecode and flattened/lifted/validated there; a VM product must never be
+         * presented as fully CFF-protected without it (see [complete]).
+         */
+        val targetBytecodeCff: Capability = Capability(
+            "interpreter.bytecode.cff",
+            CapabilityStatus.NOT_IMPLEMENTED,
+            "pending: the generated interpreter ships as Lua source; compiling it to target " +
+                "bytecode and applying CFF there needs the target-version luac/loader/editor/" +
+                "validator loop",
+        ),
+        val translator: String = "LuaVmTranslator",
         val cffReport: ControlFlowFlatteningReport? = null,
         val obfuscationReport: ObfuscationReport? = null,
     ) {
-        val complete: Boolean
+        /** The four protection categories the contract requires to be distinguishable, in order. */
+        val categories: List<Capability>
+            get() = listOf(sourceCff, lift, interpreterSourceCff, targetBytecodeCff)
+
+        /** The implemented staging layers (input source CFF, lift, interpreter source staging) applied. */
+        val staged: Boolean
             get() = sourceCff.status == CapabilityStatus.APPLIED &&
                 lift.status == CapabilityStatus.APPLIED &&
-                interpreterCff.status == CapabilityStatus.APPLIED
+                interpreterSourceCff.status == CapabilityStatus.APPLIED
+
+        /**
+         * Honest completeness: requires ALL four categories, including the target
+         * bytecode-level CFF that is `not_implemented` — so [complete] stays `false`
+         * for every VM product until that layer actually ships.
+         */
+        val complete: Boolean
+            get() = staged && targetBytecodeCff.status == CapabilityStatus.APPLIED
     }
 
     data class Options(
@@ -323,19 +365,21 @@ object LuaVmObfuscation {
         return Emission(
             finalModule,
             CapabilityReport(
-                Capability("input.obfuscation",
+                inputObfuscation = Capability(
+                    "input.obfuscation",
                     if (options.inputObfuscation != null) CapabilityStatus.APPLIED else CapabilityStatus.REFUSED,
                     obfuscationReport?.toString() ?: "input obfuscation disabled"),
-                Capability("source.cff", sourceStatus,
+                sourceCff = Capability("source.cff", sourceStatus,
                     cffReport?.toString() ?: "source CFF disabled"),
-                Capability("vm.lift", CapabilityStatus.APPLIED, "private ISA + encrypted program"),
-                Capability("interpreter.source.cff",
+                lift = Capability("vm.lift", CapabilityStatus.APPLIED, "private ISA + encrypted program"),
+                interpreterSourceCff = Capability("interpreter.source.cff",
                     if (options.interpreterCff) CapabilityStatus.APPLIED else CapabilityStatus.REFUSED,
                     if (options.interpreterCff) "source-level dispatcher applied without a parser"
                     else "generated host source CFF disabled"),
-                "LuaVmTranslator",
-                cffReport,
-                obfuscationReport,
+                // 4/4 stays at its NOT_IMPLEMENTED default: the generated interpreter's
+                // target bytecode-level CFF does not exist yet and must never be implied.
+                cffReport = cffReport,
+                obfuscationReport = obfuscationReport,
             ),
         )
     }
