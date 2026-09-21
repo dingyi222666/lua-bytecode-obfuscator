@@ -1,5 +1,7 @@
 package io.github.dingyi222666.luabytecode.vm
 
+import kotlin.math.pow
+
 /** Reference interpreter for the private ISA. Runtime state is explicit: frames, top,
  * result sequences and captured cells are separate from source/CFF data. */
 object LuaVmInterpreter {
