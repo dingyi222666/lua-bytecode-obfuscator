@@ -7,8 +7,11 @@ import io.github.dingyi222666.luabytecode.bytecode.analysis.*
 
 /** A restricted, call-free final constant pass with relocated CFF certificates.
  *
- * Owned by the CFF feature; the root orchestrator invokes it between
- * flattening and Pass K, so it must be public across the module boundary.
+ * Originates from the CFF feature but lives in the contract layer (same
+ * promotion rule as [CffTranslationValidator]): the constant-encryption pass
+ * plugin (`:lua-obfuscation-constants`) drives it between flattening and
+ * Pass K, and feature modules must not import each other — so the shared
+ * helper is promoted to the one module both sides already depend on.
  */
 object CffConstantExpansion {
     data class Result(val constants: Int, val sites: Int, val proof: CffProofManifest,
