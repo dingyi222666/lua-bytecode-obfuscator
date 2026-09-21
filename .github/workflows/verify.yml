@@ -37,23 +37,49 @@ jobs:
       - name: KMP purity gate
         run: bash tools/verify-kmp-purity.sh
 
-      - name: Web dist smoke
+      - name: Web dist smoke (js runtime bundle)
         run: |
           ./gradlew :lua-runtime-js:webDist --stacktrace
           BUNDLE=apps/lua-runtime-js/build/web/luabytecode-runtime.js
-          # The worker importScripts the single UMD bundle, so the nodejs-target
-          # IR linker must emit one whole-program file: with per-module
-          # granularity the bundle is just the ~30K orphan entry module with no
-          # pipeline inside (regression guard for
-          # kotlin.js.ir.output.granularity=whole-program in gradle.properties).
+          # The js API is consumed as one whole-program UMD file (regression
+          # guard for kotlin.js.ir.output.granularity=whole-program in
+          # gradle.properties): with per-module granularity the bundle is just
+          # the ~30K orphan entry module with no pipeline inside.
           test -f "$BUNDLE" || { echo "missing bundle: $BUNDLE"; exit 1; }
           SIZE=$(wc -c < "$BUNDLE")
           echo "bundle bytes: $SIZE"
           [ "$SIZE" -gt 500000 ] || { echo "bundle too small ($SIZE bytes): per-module IR output regression"; exit 1; }
           grep -q obfuscateLuaChunk "$BUNDLE" || { echo "obfuscateLuaChunk export missing from bundle"; exit 1; }
-          test -f apps/lua-runtime-js/build/web/web/index.html || { echo "missing web/index.html"; exit 1; }
-          test -f apps/lua-runtime-js/build/web/web/worker.js || { echo "missing web/worker.js"; exit 1; }
           echo "web dist ok: $BUNDLE ($SIZE bytes)"
+
+      - name: Compose web dist smoke (:lua-web-compose)
+        run: |
+          ./gradlew :lua-web-compose:wasmJsBrowserDistribution --stacktrace
+          DIST=apps/lua-web-compose/build/dist/wasmJs/productionExecutable
+          test -d "$DIST" || { echo "missing dist dir: $DIST"; exit 1; }
+          ls -la "$DIST"
+          # Module script: composeApp.mjs on current KGP, .js on older layouts
+          # (outputModuleName is pinned to composeApp in build.gradle.kts).
+          test -f "$DIST/composeApp.mjs" || test -f "$DIST/composeApp.js" || { echo "missing composeApp.mjs/.js in $DIST"; exit 1; }
+          # The Compose UI + full pipeline must be inside the wasm artifact:
+          # a few MB after binaryen; a stub-sized wasm means the link lost the
+          # library stack.
+          WASM=$(find "$DIST" -maxdepth 1 -name '*.wasm' | head -1)
+          test -n "$WASM" || { echo "no .wasm artifact in $DIST"; exit 1; }
+          WSIZE=$(wc -c < "$WASM")
+          echo "wasm bytes: $WSIZE ($WASM)"
+          [ "$WSIZE" -gt 1000000 ] || { echo "wasm too small ($WSIZE bytes): UI/pipeline missing from link"; exit 1; }
+          # The shipped page must be the Compose one loading the pinned module.
+          test -f "$DIST/index.html" || { echo "missing index.html in $DIST"; exit 1; }
+          grep -q composeApp "$DIST/index.html" || { echo "index.html does not load the composeApp module"; exit 1; }
+          echo "compose web dist ok: $DIST"
+
+      - name: Upload compose web dist (web-compose-dist)
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-compose-dist
+          path: apps/lua-web-compose/build/dist/wasmJs/productionExecutable/
+          if-no-files-found: error
 
       - name: Upload test reports on failure
         if: failure()

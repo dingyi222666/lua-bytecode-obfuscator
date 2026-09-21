@@ -74,11 +74,12 @@ kotlin {
     }
 }
 
-// Developer convenience: assemble the runnable web UI — the linked production
-// executable (UMD, loaded via importScripts by the worker) plus the static
-// page — into build/web. NOT part of the build / check dependency chains:
-// CI never runs a browser or a bundler. Run explicitly:
-//   ./gradlew :lua-runtime-js:webDist   # then open build/web/web/index.html
+// Developer convenience: assemble the linked production executable (UMD
+// bundle, renamed luabytecode-runtime.js) into build/web. Since Compose Web
+// 改造 Round 3 the static page + worker live in :lua-web-compose (Compose UI,
+// wasmJs) — this module ships the API/bundle only. NOT part of the build /
+// check dependency chains: CI never runs a browser or a bundler. Run
+// explicitly: ./gradlew :lua-runtime-js:webDist
 val webDist by tasks.registering(Sync::class) {
     val jsTarget = kotlin.targets.getByName("js") as
         org.jetbrains.kotlin.gradle.targets.js.ir.KotlinJsIrTarget
@@ -86,9 +87,8 @@ val webDist by tasks.registering(Sync::class) {
         it.mode == org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBinaryMode.PRODUCTION
     }
     from(production.mainFileSyncPath) {
-        // Stable name the static page and the worker reference.
+        // Stable name the CI smoke and node hosts reference.
         rename { "luabytecode-runtime.js" }
     }
-    from(tasks.named("jsProcessResources"))
     into(layout.buildDirectory.dir("web"))
 }
