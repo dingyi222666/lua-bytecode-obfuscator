@@ -11,8 +11,10 @@ import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkWriter
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ObfuscationPluginPipelineTest {
@@ -59,19 +61,51 @@ class ObfuscationPluginPipelineTest {
 
     @Test
     fun `an unregistered pass is disabled even when its config section is set`() {
-        val withoutJunk = registry(DefaultObfuscationPasses.all().filter { it.id != "junk" })
+        // A host assembling only a prefix of the built-in chain (jumps ->
+        // strings -> registers): the junk section is set, but the pass was
+        // never registered, so it must not run and must not report.
+        val all = DefaultObfuscationPasses.all()
+        val prefix = registry(listOf("jumps", "strings", "registers").map { id ->
+            checkNotNull(all.firstOrNull { it.id == id })
+        })
         val chunk = chunk()
         val report = LuaObfuscator.obfuscate(chunk, ObfuscationConfig(
             masterSeed = seed,
+            stringEncryption = StringEncryptionConfig(minLength = 6),
             jumpIndirection = JumpIndirectionConfig(depth = 1),
             junkCode = JunkCodeConfig(),
             registerObfuscation = RegisterObfuscationConfig(),
-        ), withoutJunk)
+        ), prefix)
         assertNull(report.junkCode, "an unregistered pass must not run")
+        assertNotNull(report.stringEncryption)
         assertNotNull(report.jumpIndirection)
         assertNotNull(report.registerObfuscation)
         assertTrue(report.modules.isEmpty())
         LuaChunkLoader.load(LuaChunkWriter.dump(chunk), version)
+    }
+
+    @Test
+    fun `excluding a leaf pass keeps its config switch inert`() {
+        val withoutStrip = registry(DefaultObfuscationPasses.all().filter { it.id != "debug-strip" })
+        val chunk = chunk()
+        val report = LuaObfuscator.obfuscate(chunk, ObfuscationConfig(
+            masterSeed = seed,
+            stripDebugInfo = true,
+        ), withoutStrip)
+        assertFalse(report.strippedDebugInfo, "unregistered debug-strip must not strip")
+        assertNotNull(report.tailReturn, "the always-on repair still runs")
+        LuaChunkLoader.load(LuaChunkWriter.dump(chunk), version)
+    }
+
+    @Test
+    fun `removing a mid-chain pass surfaces its dangling dependents`() {
+        // Sharp edge, on purpose: constraint references are validated against
+        // the registered set (typo protection), so a partial assembly must
+        // keep the graph consistent - dropping a mid-chain pass without its
+        // dependents is an error, not a silent reorder.
+        val broken = registry(DefaultObfuscationPasses.all().filter { it.id != "junk" })
+        val exception = assertFailsWith<IllegalArgumentException> { broken.resolve() }
+        assertTrue(exception.message!!.contains("unknown pass id 'junk'"), exception.message)
     }
 
     @Test

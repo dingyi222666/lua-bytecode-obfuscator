@@ -21,7 +21,11 @@ package io.github.dingyi222666.luabytecode.obfuscate
  * order: a stable topological order over `runsAfter` / `runsBefore` edges with
  * ties broken by id, so the same constraint set always resolves to the same
  * sequence. Dangling references and cycles are rejected with explicit
- * exceptions.
+ * exceptions (typo protection: a silently dropped edge could reorder passes).
+ * Consequence for partial assemblies: a host that registers only a SUBSET of
+ * the chain must keep the graph consistent — removing a pass also removes
+ * everything that declared it in `runsAfter`/`runsBefore`, otherwise the
+ * dangling check fires with the exact reference in its message.
  */
 class ObfuscationRegistry private constructor(
     private val passesById: LinkedHashMap<String, ObfuscationPassPlugin>,
