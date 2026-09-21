@@ -540,7 +540,9 @@ jvmMain 资源 → base64 + md5。一致性三角固定：
 - io/edit/analysis：run 35567827069（红，sortedSetOf）→ 35568104713（绿）
 - api/五 feature/vm：run 35568377371（红，replaceAll/removeIf）→ 35568547061（红，Integer/String.toByteArray）→ 35568992992（红，commonTest Charsets/BigInteger）→ 35569194145（红，Math.floorMod 等）→ 35569425492（红，mocha 超时）→ 35569715892（绿）
 - :lua-runtime-js 骨架 + 资产投递：run 35570310090（绿）
-- WebObfuscator API + e2e + 静态 UI + 冒烟：见本节末尾补记的最终绿 run
+- WebObfuscator API + e2e + 静态 UI + 冒烟：run 35572491672（红，补丁脚本把
+  import 拆行写成了字面 `\n`；期间 git push 因本地网络中断重试多次）→
+  **35572689453（绿，build + 全部 jsNodeTest + purity gate）**
 
 ### Phase 6（前半）遗留项
 
