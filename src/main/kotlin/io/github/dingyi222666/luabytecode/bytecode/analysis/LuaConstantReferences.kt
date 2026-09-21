@@ -3,6 +3,9 @@ package io.github.dingyi222666.luabytecode.bytecode.analysis
 import io.github.dingyi222666.luabytecode.bytecode.LuaBytecodeVersion
 import io.github.dingyi222666.luabytecode.bytecode.LuaInstruction
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
+// retargeted ships with :lua-bytecode-edit (same package, other module) — the
+// explicit import keeps the dependency visible.
+import io.github.dingyi222666.luabytecode.bytecode.analysis.retargeted
 
 /**
  * Constant table analysis: which operands actually reference a constant.
@@ -200,6 +203,17 @@ val LuaInstruction.skipsNextInstruction: Boolean
 /** `true` when this instruction is an unconditional jump. */
 val LuaInstruction.isUnconditionalJump: Boolean
     get() = opcodeName == "JMP"
+
+/**
+ * This instruction moved from [fromPc] to [toPc], keeping the same target.
+ *
+ * Lives next to [jumpTarget] (its dependency); [retargeted] itself ships with
+ * `:lua-bytecode-edit`, which the root module depends on.
+ */
+fun LuaInstruction.relocated(fromPc: Int, toPc: Int): LuaInstruction {
+    val target = jumpTarget(fromPc) ?: return this
+    return retargeted(fromPc, toPc, target)
+}
 
 /** Every jump of this prototype as `pc to target` pairs. */
 fun LuaPrototype.jumpTargets(): Map<Int, Int> = buildMap {

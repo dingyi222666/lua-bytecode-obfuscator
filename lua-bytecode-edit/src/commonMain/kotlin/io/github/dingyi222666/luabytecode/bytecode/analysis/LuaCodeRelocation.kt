@@ -73,12 +73,6 @@ fun LuaInstruction.retargeted(fromPc: Int, toPc: Int, target: Int): LuaInstructi
     else -> this
 }
 
-/** This instruction moved from [fromPc] to [toPc], keeping the same target. */
-fun LuaInstruction.relocated(fromPc: Int, toPc: Int): LuaInstruction {
-    val target = jumpTarget(fromPc) ?: return this
-    return retargeted(fromPc, toPc, target)
-}
-
 /** A fresh `JMP` from [fromPc] to [target]. */
 fun jumpTo(version: LuaBytecodeVersion, fromPc: Int, target: Int): LuaInstruction =
     LuaInstructionFactory.of(version, requireNotNull(LuaOpcodes.opcodeOf(version, "JMP"))).retargeted(fromPc, fromPc, target)
