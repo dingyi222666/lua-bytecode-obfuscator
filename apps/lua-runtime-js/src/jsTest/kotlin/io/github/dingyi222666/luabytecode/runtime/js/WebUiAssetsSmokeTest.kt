@@ -69,6 +69,7 @@ class WebUiAssetsSmokeTest {
         repeat(8) {
             for (candidate in listOf(
                 path.join(dir, "src", "jsMain", "resources", "web", name),
+                path.join(dir, "apps", "lua-runtime-js", "src", "jsMain", "resources", "web", name),
                 path.join(dir, "lua-runtime-js", "src", "jsMain", "resources", "web", name),
             )) {
                 if (fs.existsSync(candidate) == true) {
