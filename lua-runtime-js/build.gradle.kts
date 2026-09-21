@@ -26,6 +26,10 @@ version = "1.0-SNAPSHOT"
 
 kotlin {
     js {
+        // Pin the UMD module name: the worker resolves the runtime through
+        // globalThis["luabytecodeWebRuntime"], so it must not depend on the
+        // Gradle-derived default naming scheme.
+        outputModuleName.set("luabytecodeWebRuntime")
         nodejs {
             testTask {
                 // End-to-end obfuscation over real chunks (and the asset suite)

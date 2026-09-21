@@ -1,0 +1,10 @@
+package io.github.dingyi222666.luabytecode.runtime.js
+
+/** `real/ctor/c01_numericfor_53.luac` (Lua 5.3, numeric for loop), base64
+ * encoded — kept byte-verified so every js test works from one fixture. */
+internal val numericFor53Base64: String =
+    "G0x1YVMAGZMNChoKBAgECAh4VgAAAAAAAAAAAAAAKHdAARRAYzAxX251bWVyaWNmb3IubHVhAAAAAAAAAAAAAQULAAAAAQAAAEFA" +
+    "AACBgAAAwUAAAGgAAIANAAEAZ0D/f0bAQACAAAAAZEAAASYAgAAEAAAAEwAAAAAAAAAAEwEAAAAAAAAAEwoAAAAAAAAABAZwcmlu" +
+    "dAEAAAABAAAAAAALAAAAAQAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAMAAAADAAAAAwAAAAMAAAAFAAAABnRvdGFsAQAAAAsA" +
+    "AAAMKGZvciBpbmRleCkEAAAABwAAAAwoZm9yIGxpbWl0KQQAAAAHAAAACyhmb3Igc3RlcCkEAAAABwAAAAJpBQAAAAYAAAABAAAA" +
+    "BV9FTlY="
