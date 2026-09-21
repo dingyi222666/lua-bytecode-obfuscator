@@ -27,7 +27,16 @@ kotlin {
     // Web target (roadmap step 6): the common code compiles for the browser /
     // node unchanged; tests run on node only (no karma / headless browser).
     js {
-        nodejs()
+        nodejs {
+            testTask {
+                // LuaLcgTest brute-forces a 2M step no-repeat cycle walk; the
+                // boxed Long keys of the js HashSet need far more than mocha's
+                // 2s default timeout on node.
+                useMocha {
+                    timeout = "60000"
+                }
+            }
+        }
     }
 
     sourceSets {
