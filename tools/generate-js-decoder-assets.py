@@ -4,21 +4,26 @@
 The decoder assets ship with the feature modules as JVM classpath resources
 (:lua-obfuscation-strings /obfuscator/decode_NN.luac and
 :lua-obfuscation-constants /obfuscator/decode_num_NN.luac). Non-JVM hosts
-cannot read classpath resources, so the js runtime (:lua-runtime-js) and the
-native CLI (:lua-cli-native) carry the same bytes as committed base64
-constants. This script is the single source of truth linking all three
-deliveries: it reads the JVM resources and regenerates
+cannot read classpath resources, so the js runtime (:lua-runtime-js), the
+native CLI (:lua-cli-native) and the Compose web host (:lua-web-compose,
+wasmJs) carry the same bytes as committed base64 constants. This script is the
+single source of truth linking all four deliveries: it reads the JVM resources
+and regenerates
 
     lua-runtime-js/src/jsMain/kotlin/io/github/dingyi222666/luabytecode/runtime/js/LuaDecoderAssetsJs.kt
     lua-cli-native/src/nativeMain/kotlin/io/github/dingyi222666/luabytecode/cli/LuaDecoderAssetsNative.kt
+    lua-web-compose/src/wasmJsMain/kotlin/io/github/dingyi222666/luabytecode/web/wasm/LuaDecoderAssetsWasm.kt
 
-(after the monorepo regrouping the physical roots are apps/lua-runtime-js and
-apps/lua-cli-native; the script below already points there.)
+(after the monorepo regrouping the physical roots are apps/lua-runtime-js,
+apps/lua-cli-native and apps/lua-web-compose; the script below already points
+there.)
 
 The md5 digests it emits are asserted on the JVM side by the
 DecoderAssetIntegrityTest of both feature modules and on the js / native sides
-by the LuaDecoderAssetsJsTest / LuaDecoderAssetsNativeTest suites — editing
-any .luac without regenerating breaks the build.
+by the LuaDecoderAssetsJsTest / LuaDecoderAssetsNativeTest suites (the wasmJs
+host has no test source set — CI never runs a browser — and is kept identical
+by construction, being generated from the same assets in the same run) —
+editing any .luac without regenerating breaks the build.
 
 Usage: python3 tools/generate-js-decoder-assets.py
 """
@@ -49,26 +54,32 @@ TARGETS = {
            "apps/lua-runtime-js/src/jsMain/kotlin/io/github/dingyi222666/luabytecode/runtime/js/LuaDecoderAssetsJs.kt"),
     "native": (ROOT /
                "apps/lua-cli-native/src/nativeMain/kotlin/io/github/dingyi222666/luabytecode/cli/LuaDecoderAssetsNative.kt"),
+    "wasm": (ROOT /
+             "apps/lua-web-compose/src/wasmJsMain/kotlin/io/github/dingyi222666/luabytecode/web/wasm/LuaDecoderAssetsWasm.kt"),
 }
 
 PACKAGE = {
     "js": "io.github.dingyi222666.luabytecode.runtime.js",
     "native": "io.github.dingyi222666.luabytecode.cli",
+    "wasm": "io.github.dingyi222666.luabytecode.web.wasm",
 }
 
 OBJECT = {
     "js": "LuaDecoderAssetsJs",
     "native": "LuaDecoderAssetsNative",
+    "wasm": "LuaDecoderAssetsWasm",
 }
 
 PLATFORM_LABEL = {
-    "js": "js",
-    "native": "native",
+    "js": "JS",
+    "native": "Native",
+    "wasm": "WasmJs",
 }
 
 STEP_NOTE = {
     "js": "roadmap step 6",
     "native": "roadmap step 6b",
+    "wasm": "Compose Web 改造 Round 3",
 }
 
 HEADER = """\
@@ -80,8 +91,9 @@ HEADER = """\
 // (/obfuscator/decode_NN.luac) and :lua-obfuscation-constants
 // (/obfuscator/decode_num_NN.luac). The md5 digests below are asserted on the
 // JVM side by the DecoderAssetIntegrityTest of both feature modules and on the
-// {platform} side by the LuaDecoderAssets{suffix}Test suite, so the three
-// deliveries (JVM classpath, js, native) cannot drift apart silently.
+// js / native sides by the LuaDecoderAssetsJsTest / LuaDecoderAssetsNativeTest
+// suites, so the four deliveries (JVM classpath, js, native, wasmJs) cannot
+// drift apart silently.
 package {package}
 
 import kotlin.io.encoding.Base64
@@ -109,7 +121,7 @@ def main() -> None:
     b64_entries = "\n".join(f'        "{p}" to "{blobs[p]}",' for p in ASSETS)
 
     for platform, target in TARGETS.items():
-        suffix = "Js" if platform == "js" else "Native"
+        suffix = OBJECT[platform].removeprefix("LuaDecoderAssets")
         body = f"""/**
  * {platform.upper()} delivery of the bundled decoder stub chunks ({STEP_NOTE[platform]}).
  * The strings / constants passes load these through `Platform.bundledChunks`

@@ -6,8 +6,9 @@
 // (/obfuscator/decode_NN.luac) and :lua-obfuscation-constants
 // (/obfuscator/decode_num_NN.luac). The md5 digests below are asserted on the
 // JVM side by the DecoderAssetIntegrityTest of both feature modules and on the
-// js side by the LuaDecoderAssetsJsTest suite, so the three
-// deliveries (JVM classpath, js, native) cannot drift apart silently.
+// js / native sides by the LuaDecoderAssetsJsTest / LuaDecoderAssetsNativeTest
+// suites, so the four deliveries (JVM classpath, js, native, wasmJs) cannot
+// drift apart silently.
 package io.github.dingyi222666.luabytecode.runtime.js
 
 import kotlin.io.encoding.Base64

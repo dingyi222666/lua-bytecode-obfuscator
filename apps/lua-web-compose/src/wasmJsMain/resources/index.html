@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lua-bytecode-obfuscator (compose web)</title>
+<style>
+  /* ComposeViewport appends its canvas to <body> and sizes it to the
+     container's client box: html/body must span the full viewport with zero
+     margins or the UI renders clipped / scrollable (known Compose-for-Web
+     pitfall). */
+  html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; background: #fafafa; }
+</style>
+</head>
+<body>
+<script type="module">
+  // The Kotlin/Wasm production linker emits composeApp.mjs (outputModuleName
+  // is pinned in build.gradle.kts); fall back to the .js spelling of older
+  // KGP layouts so this page works with either distribution shape.
+  try {
+    await import("./composeApp.mjs");
+  } catch (cause) {
+    try {
+      await import("./composeApp.js");
+    } catch (fallbackCause) {
+      const message = document.createElement("pre");
+      message.style.cssText = "white-space:pre-wrap;padding:1rem;font-family:system-ui;";
+      message.textContent = "failed to load the application module:\n" + cause + "\n" + fallbackCause;
+      document.body.appendChild(message);
+    }
+  }
+</script>
+</body>
+</html>
