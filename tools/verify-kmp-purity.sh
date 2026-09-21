@@ -21,7 +21,8 @@
 #
 # Since roadmap step 3 the common code of the extracted KMP modules is scanned
 # too: :lua-platform / :lua-bytecode-model / :lua-bytecode-io /
-# :lua-bytecode-edit commonMain must stay pure.
+# :lua-bytecode-edit / :lua-bytecode-analysis / :lua-obfuscation-api and every
+# :lua-obfuscation-* feature module commonMain must stay pure.
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -35,6 +36,13 @@ SCOPE=(
   lua-bytecode-model/src/commonMain
   lua-bytecode-io/src/commonMain
   lua-bytecode-edit/src/commonMain
+  lua-bytecode-analysis/src/commonMain
+  lua-obfuscation-api/src/commonMain
+  lua-obfuscation-strings/src/commonMain
+  lua-obfuscation-constants/src/commonMain
+  lua-obfuscation-jumps/src/commonMain
+  lua-obfuscation-cff/src/commonMain
+  lua-obfuscation-register/src/commonMain
 )
 
 strip_comments() {
