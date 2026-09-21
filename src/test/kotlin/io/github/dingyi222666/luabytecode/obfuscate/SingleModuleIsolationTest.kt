@@ -71,14 +71,17 @@ class SingleModuleIsolationTest {
             val report = LuaObfuscator.obfuscate(chunk, config)
 
             assertNotNull(section(report), "$label: the enabled feature did not report")
-            assertNull(report.stringEncryption, "$label: string encryption leaked in")
-            assertNull(report.constantEncryption, "$label: constant encryption leaked in")
-            assertNull(report.keyRenaming, "$label: key renaming leaked in")
-            assertNull(report.jumpIndirection, "$label: jump indirection leaked in")
-            assertNull(report.junkCode, "$label: junk code leaked in")
-            assertNull(report.blockCloning, "$label: block cloning leaked in")
-            if (label != "cff") assertNull(report.controlFlowFlattening, "$label: flattening leaked in")
-            assertNull(report.registerObfuscation, "$label: register obfuscation leaked in")
+            val active = mapOf(
+                "strings" to report.stringEncryption,
+                "constants" to report.constantEncryption,
+                "keys" to report.keyRenaming,
+                "jumps" to report.jumpIndirection,
+                "junk" to report.junkCode,
+                "clones" to report.blockCloning,
+                "cff" to report.controlFlowFlattening,
+                "registers" to report.registerObfuscation,
+            ).filterValues { it != null }.keys
+            assertEquals(setOf(label), active, "$label: exactly the enabled pass may report")
             assertTrue(report.modules.isEmpty(), "$label: extension modules leaked in")
 
             // the single-feature output must stay valid bytecode
