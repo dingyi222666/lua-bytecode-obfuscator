@@ -69,7 +69,9 @@ val cliRuntimeClasspath = sourceSets["main"].runtimeClasspath
 // mainClass here (the native CLI is the only default CLI, roadmap step 6b).
 tasks.register("exportCliRuntimeClasspath") {
     doLast {
-        file("$buildDir/cli-runtime-classpath.txt").writeText(cliRuntimeClasspath.asPath)
+        val out = file("$buildDir/cli-runtime-classpath.txt")
+        out.parentFile.mkdirs()
+        out.writeText(cliRuntimeClasspath.asPath)
     }
 }
 

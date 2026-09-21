@@ -174,7 +174,6 @@ class LuaCffSemanticsTest {
     private fun differential(source: String, full: Boolean = false, nativeModule: Boolean = false,
         requested: ControlFlowFlatteningConfig? = null, supports53: Boolean = true) {
         assumeTrue(versions.all { (_, v) -> File("/tmp/lua-${v}/src/luac").canExecute() })
-        if (nativeModule) assumeTrue(hasCc()) { "no cc toolchain for the native-module stub" }
         val dir = Files.createTempDirectory("cff-semantics-").toFile()
         try {
             val input = File(dir, "input.lua").apply { writeText(source) }
@@ -284,12 +283,6 @@ class LuaCffSemanticsTest {
         } finally {
             dir.deleteRecursively()
         }
-    }
-
-    private fun hasCc(): Boolean = try {
-        ProcessBuilder("cc", "--version").redirectErrorStream(true).start().waitFor() == 0
-    } catch (_: java.io.IOException) {
-        false
     }
 
     private fun run(dir: File, vararg command: String): String {
