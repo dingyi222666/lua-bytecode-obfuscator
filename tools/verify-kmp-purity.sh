@@ -22,7 +22,9 @@
 # Since roadmap step 3 the common code of the extracted KMP modules is scanned
 # too: :lua-platform / :lua-bytecode-model / :lua-bytecode-io /
 # :lua-bytecode-edit / :lua-bytecode-analysis / :lua-obfuscation-api and every
-# :lua-obfuscation-* feature module commonMain must stay pure.
+# :lua-obfuscation-* feature module plus :lua-vm commonMain must stay pure.
+# Since roadmap step 5 the vm package itself lives in :lua-vm (only the root's
+# LuaVmPipeline composition wiring remains under src/main/kotlin).
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -43,6 +45,7 @@ SCOPE=(
   lua-obfuscation-jumps/src/commonMain
   lua-obfuscation-cff/src/commonMain
   lua-obfuscation-register/src/commonMain
+  lua-vm/src/commonMain
 )
 
 strip_comments() {

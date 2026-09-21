@@ -37,6 +37,10 @@ dependencies {
     implementation(project(":lua-obfuscation-jumps"))
     implementation(project(":lua-obfuscation-cff"))
     implementation(project(":lua-obfuscation-register"))
+    // Optional VM feature module: translator, private ISA, encrypted program,
+    // generated Lua interpreter (roadmap step 5). Input staging is injected via
+    // LuaVmPipeline below; no other feature depends on it.
+    implementation(project(":lua-vm"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))

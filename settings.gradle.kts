@@ -30,4 +30,5 @@ include(":lua-obfuscation-constants")
 include(":lua-obfuscation-jumps")
 include(":lua-obfuscation-cff")
 include(":lua-obfuscation-register")
+include(":lua-vm")
 
