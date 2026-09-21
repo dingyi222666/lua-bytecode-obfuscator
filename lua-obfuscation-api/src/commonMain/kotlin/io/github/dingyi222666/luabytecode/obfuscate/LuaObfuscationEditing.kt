@@ -75,5 +75,11 @@ fun installClosurePrologue(main: LuaPrototype, scratch: Int, slot: Int, child: I
     if (lines.isNotEmpty()) {
         lines.addAll(at, listOf(main.lineDefined, main.lineDefined)); main.setAbsoluteLines(lines)
     }
-    main.localVariables.replaceAll { it.copy(startPc = moved(it.startPc), endPc = moved(it.endPc)) }
+    // Replacement of the JVM-only `MutableList.replaceAll` (java.util.List
+    // default method): in-place index rewrite, common compilable.
+    val locals = main.localVariables
+    for (index in locals.indices) {
+        val local = locals[index]
+        locals[index] = local.copy(startPc = moved(local.startPc), endPc = moved(local.endPc))
+    }
 }

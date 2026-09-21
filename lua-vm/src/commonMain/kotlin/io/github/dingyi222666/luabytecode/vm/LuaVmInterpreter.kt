@@ -180,7 +180,7 @@ object LuaVmInterpreter {
                     repeat(count) { slot -> table?.set(numeric(frame.read(insn.c)) + slot + 1L, frame.read(insn.a + slot + 1)) }
                 }
                 LuaVmProgram.Op.TBC -> if (insn.a !in frame.toBeClosed) frame.toBeClosed += insn.a
-                LuaVmProgram.Op.CLOSE -> { frame.closeCells(insn.a); frame.toBeClosed.removeIf { it >= insn.a } }
+                LuaVmProgram.Op.CLOSE -> { frame.closeCells(insn.a); frame.toBeClosed.removeAll { it >= insn.a } }
                 LuaVmProgram.Op.GETVARG -> {
                     val key = frame.read(insn.c)
                     val index = when (key) {
