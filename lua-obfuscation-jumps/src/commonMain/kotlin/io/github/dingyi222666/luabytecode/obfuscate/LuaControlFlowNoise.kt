@@ -511,13 +511,15 @@ object LuaBlockCloning {
 
     /** Block ranges of a prototype (`null` when it has no analysable shape). */
     private fun blockRanges(prototype: LuaPrototype): List<IntRange>? {
-        val starts = sortedSetOf(0)
+        // Replacement of the JVM-only `sortedSetOf(0)` (TreeSet): dedupe into a
+        // plain set, sort at the read — identical ascending order.
+        val starts = mutableSetOf(0)
         for (pc in prototype.code.indices) {
             prototype.code[pc].jumpTarget(pc)?.let { target ->
                 if (target in prototype.code.indices) starts += target
             }
         }
-        val list = starts.toList()
+        val list = starts.sorted()
         return list.mapIndexed { index, from ->
             from..(if (index + 1 < list.size) list[index + 1] - 1 else prototype.code.size - 1)
         }

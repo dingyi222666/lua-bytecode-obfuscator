@@ -590,7 +590,9 @@ object LuaControlFlowFlattening {
     private fun unitsOf(prototype: LuaPrototype, split: Boolean = false): List<IntRange>? {
         val code = prototype.code
         val size = code.size
-        val starts = sortedSetOf(0)
+        // Replacement of the JVM-only `sortedSetOf(0)` (TreeSet): dedupe into a
+        // plain set, sort below — identical ascending order.
+        val starts = mutableSetOf(0)
         for (pc in code.indices) {
             val instruction = code[pc]
             instruction.jumpTarget(pc)?.let { if (it in 0 until size) starts += it }
@@ -609,7 +611,7 @@ object LuaControlFlowFlattening {
                 if (!code[group.first - 1].skipsNextInstruction) starts += group.first
             }
         }
-        val filtered = starts.filter { it in 0 until size }
+        val filtered = starts.filter { it in 0 until size }.sorted()
         val boundaries = filtered.toSet()
         val groupEnd = HashMap<Int, Int>()
         for (group in instructionGroupsOf(prototype)) for (pc in group) groupEnd[pc] = group.last

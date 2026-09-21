@@ -111,7 +111,7 @@ object LuaVmProgram {
     class OpcodeMap(private val permutation: IntArray) {
         init {
             require(permutation.size == Op.entries.size) { "permutation size mismatch" }
-            require(permutation.toSortedSet().size == Op.entries.size) { "permutation is not a bijection" }
+            require(permutation.toSet().size == Op.entries.size) { "permutation is not a bijection" }
         }
 
         fun encode(op: Op): Int = permutation[op.ordinal]
