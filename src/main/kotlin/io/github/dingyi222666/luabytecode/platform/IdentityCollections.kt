@@ -73,24 +73,24 @@ class IdentitySet<T : Any> : AbstractMutableSet<T>() {
  */
 class IdentityMap<K : Any, V> : MutableMap<K, V> {
 
-    private val keys = ArrayList<K>()
-    private val values = ArrayList<V?>()
+    private val keyList = ArrayList<K>()
+    private val valueList = ArrayList<V?>()
 
-    private fun indexOfKey(key: K): Int = keys.indexOfFirst { it === key }
+    private fun indexOfKey(key: K): Int = keyList.indexOfFirst { it === key }
 
     override val size: Int
-        get() = keys.size
+        get() = keyList.size
 
-    override fun isEmpty(): Boolean = keys.isEmpty()
+    override fun isEmpty(): Boolean = keyList.isEmpty()
 
     override fun containsKey(key: K): Boolean = indexOfKey(key) >= 0
 
-    override fun containsValue(value: V): Boolean = values.contains(value)
+    override fun containsValue(value: V): Boolean = valueList.contains(value)
 
     override fun get(key: K): V? {
         val index = indexOfKey(key)
         @Suppress("UNCHECKED_CAST")
-        val result = if (index >= 0) values[index] as V else null
+        val result = if (index >= 0) valueList[index] as V else null
         return result
     }
 
@@ -98,21 +98,21 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
         val index = indexOfKey(key)
         if (index >= 0) {
             @Suppress("UNCHECKED_CAST")
-            val previous = values[index] as V
-            values[index] = value
+            val previous = valueList[index] as V
+            valueList[index] = value
             return previous
         }
-        keys.add(key)
-        values.add(value)
+        keyList.add(key)
+        valueList.add(value)
         return null
     }
 
     override fun remove(key: K): V? {
         val index = indexOfKey(key)
         if (index < 0) return null
-        keys.removeAt(index)
+        keyList.removeAt(index)
         @Suppress("UNCHECKED_CAST")
-        val previous = values.removeAt(index) as V
+        val previous = valueList.removeAt(index) as V
         return previous
     }
 
@@ -121,25 +121,25 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
     }
 
     override fun clear() {
-        keys.clear()
-        values.clear()
+        keyList.clear()
+        valueList.clear()
     }
 
     override val keys: MutableSet<K>
         get() = object : AbstractMutableSet<K>() {
             override val size: Int
                 get() = this@IdentityMap.size
-            override fun add(element: K): Boolean = put(element, null as V?) == null
+            override fun add(element: K): Boolean = this@IdentityMap.put(element, null as V?) == null
             override fun remove(element: K): Boolean = this@IdentityMap.remove(element) != null
             override fun contains(element: K): Boolean = containsKey(element)
             override fun clear() = this@IdentityMap.clear()
             override fun iterator(): MutableIterator<K> =
                 object : MutableIterator<K> {
                     private var index = 0
-                    override fun hasNext(): Boolean = index < keys.size
-                    override fun next(): K = keys[index++]
+                    override fun hasNext(): Boolean = index < keyList.size
+                    override fun next(): K = keyList[index++]
                     override fun remove() {
-                        this@IdentityMap.remove(keys[--index])
+                        this@IdentityMap.remove(keyList[--index])
                     }
                 }
         }
@@ -152,15 +152,15 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
             override fun iterator(): MutableIterator<V> =
                 object : MutableIterator<V> {
                     private var index = 0
-                    override fun hasNext(): Boolean = index < keys.size
+                    override fun hasNext(): Boolean = index < keyList.size
                     @Suppress("UNCHECKED_CAST")
                     override fun next(): V {
-                        if (index >= keys.size) throw NoSuchElementException()
-                        val result = values[index++] as V
+                        if (index >= keyList.size) throw NoSuchElementException()
+                        val result = valueList[index++] as V
                         return result
                     }
                     override fun remove() {
-                        this@IdentityMap.remove(keys[--index])
+                        this@IdentityMap.remove(keyList[--index])
                     }
                 }
         }
@@ -181,13 +181,13 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
             override fun iterator(): MutableIterator<MutableMap.MutableEntry<K, V>> =
                 object : MutableIterator<MutableMap.MutableEntry<K, V>> {
                     private var index = 0
-                    override fun hasNext(): Boolean = index < keys.size
+                    override fun hasNext(): Boolean = index < keyList.size
                     override fun next(): MutableMap.MutableEntry<K, V> {
-                        if (index >= keys.size) throw NoSuchElementException()
+                        if (index >= keyList.size) throw NoSuchElementException()
                         return IdentityEntry(index++)
                     }
                     override fun remove() {
-                        this@IdentityMap.remove(keys[--index])
+                        this@IdentityMap.remove(keyList[--index])
                     }
                 }
         }
@@ -196,12 +196,12 @@ class IdentityMap<K : Any, V> : MutableMap<K, V> {
         private var index: Int,
     ) : MutableMap.MutableEntry<K, V> {
         override val key: K
-            get() = keys[index]
+            get() = keyList[index]
         @Suppress("UNCHECKED_CAST")
         override var value: V
-            get() = values[index] as V
+            get() = valueList[index] as V
             set(value) {
-                values[index] = value
+                valueList[index] = value
             }
         override fun hashCode(): Int = key.hashCode()
         override fun equals(other: Any?): Boolean =
