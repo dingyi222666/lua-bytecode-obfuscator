@@ -20,7 +20,9 @@ interface LuaObfuscationModule {
 }
 
 /** Mutable state shared by modules in one obfuscation run. */
-class LuaObfuscationModuleContext(
+/** `open` so the plugin contract's [ObfuscationContext] extends it: one state
+ * object flows through the pass plugins and the extension modules alike. */
+open class LuaObfuscationModuleContext(
     val chunk: LuaChunk,
     val config: ObfuscationConfig,
     val masterSeed: Long,

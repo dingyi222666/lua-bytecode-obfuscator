@@ -27,7 +27,7 @@ data class StringEncryptionConfig(
      * Seed of the key generator. `0` derives a deterministic seed from the chunk
      * content, so protecting the same chunk twice yields the same output.
      */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<StringEncryptionConfig> {
     override fun withSeed(seed: Long): StringEncryptionConfig = copy(seed = seed)
 }
@@ -43,7 +43,7 @@ data class ConstantEncryptionConfig(
     val maxConstants: Int = 0,
 
     /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<ConstantEncryptionConfig> {
     override fun withSeed(seed: Long): ConstantEncryptionConfig = copy(seed = seed)
 }
@@ -56,7 +56,7 @@ data class KeyRenamingConfig(
     val minKeyLength: Int = 4,
 
     /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<KeyRenamingConfig> {
     override fun withSeed(seed: Long): KeyRenamingConfig = copy(seed = seed)
 }
@@ -79,7 +79,7 @@ data class JumpIndirectionConfig(
     val redirectLoopJumps: Boolean = true,
 
     /** `0` derives a deterministic seed from the chunk. */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<JumpIndirectionConfig> {
     init {
         require(decoyBlocks in 0..1024) { "decoyBlocks must be in 0..1024" }
@@ -132,7 +132,7 @@ data class JunkCodeConfig(
     val guardLoopJumps: Boolean = false,
 
     /** `0` derives a deterministic seed from the chunk. */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<JunkCodeConfig> {
     init {
         require(junkPerBlock in 0..64)
@@ -200,7 +200,7 @@ data class CloneBlocksConfig(
     val predicateFamily: OpaquePredicate = OpaquePredicate.MIXED,
 
     /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<CloneBlocksConfig> {
     init {
         require(blocksPerPrototype >= 1)
@@ -216,7 +216,7 @@ data class ControlFlowFlatteningConfig(
     val enabled: Boolean = true,
 
     /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
+    override val seed: Long = 0,
 
     /** Project original initialized values with TEST; never read _ENV. */
     val stateRuntime: Boolean = false,
@@ -287,7 +287,7 @@ data class RegisterObfuscationConfig(
      * register high water mark grows by one per split (bounded).
      */
     val registerSplitting: Boolean = false,
-    val seed: Long = 0,
+    override val seed: Long = 0,
 ) : SeededPassConfig<RegisterObfuscationConfig> {
     override fun withSeed(seed: Long): RegisterObfuscationConfig = copy(seed = seed)
 }
