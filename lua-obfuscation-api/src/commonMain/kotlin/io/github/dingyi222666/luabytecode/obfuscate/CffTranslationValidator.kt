@@ -9,7 +9,7 @@ import io.github.dingyi222666.luabytecode.bytecode.analysis.jumpTarget
  * remain opaque and are checked separately by their port/operand mapping.
  * The complete control input domain is the two truth projections (including nil).
  */
-internal object CffTranslationValidator {
+object CffTranslationValidator {
     data class Result(val paths: Int, val steps: Int)
 
     fun checkStructure(prototype: LuaPrototype) {
@@ -54,7 +54,7 @@ internal object CffTranslationValidator {
 
     fun verify(
         code: List<LuaInstruction>, constants: List<LuaConstant>,
-        sites: List<CffControlPackets.Site>, destinations: List<Int>,
+        sites: List<CffControlSite>, destinations: List<Int>,
         firstPrivateRegister: Int, frameSize: Int, budget: Int,
     ): Result {
         val stops = destinations.withIndex().associate { it.value to it.index }

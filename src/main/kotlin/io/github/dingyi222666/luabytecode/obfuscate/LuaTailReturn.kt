@@ -26,12 +26,7 @@ object LuaTailReturn {
     /** Acceptable final instructions; everything else gets a synthetic `RETURN`. */
     private val RETURNS = setOf("RETURN", "RETURN0", "RETURN1", "TAILCALL")
 
-    data class Report(val patchedPrototypes: Int, val injectedInstructions: Int) {
-        override fun toString(): String =
-            "tail return: $patchedPrototypes prototypes patched ($injectedInstructions instructions)"
-    }
-
-    fun apply(chunk: LuaChunk): Report {
+    fun apply(chunk: LuaChunk): TailReturnReport {
         var patched = 0
         var injected = 0
         for (prototype in chunk.prototypes) {
@@ -51,7 +46,7 @@ object LuaTailReturn {
         // untouched (names are debug metadata), and the chunk becomes parseable again
         // instead of "protected" by a crash.
         nameUpvalues(chunk)
-        return Report(patched, injected)
+        return TailReturnReport(patched, injected)
     }
 
     /**

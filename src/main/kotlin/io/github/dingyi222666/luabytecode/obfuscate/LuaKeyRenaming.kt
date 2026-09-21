@@ -14,27 +14,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.analysis.constantOperands
 
 /**
- * Tunables of [LuaKeyRenaming] (LEAK-1 key half).
- */
-data class KeyRenamingConfig(
-    /** Minimum key length to consider (short names like `x` carry no semantics). */
-    val minKeyLength: Int = 4,
-
-    /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
-)
-
-/** Statistics of one [LuaKeyRenaming.apply] run. */
-data class KeyRenamingResult(
-    /** Number of key string constants that were renamed. */
-    val renamedKeys: Int,
-    /** Number of rewritten reference sites. */
-    val rewrittenSites: Int,
-    /** Number of candidate keys skipped by the safety judgments. */
-    val skippedKeys: Int,
-)
-
-/**
  * Table-field key renaming (LEAK-1 key half, DESIGN §3.6 `LuaKeyRenaming`).
  *
  * A key is a string constant whose every reference sits in the **K side of the

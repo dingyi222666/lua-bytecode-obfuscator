@@ -272,7 +272,7 @@ class LuaCffSemanticsTest {
                             val proof = record.proof ?: continue
                             val p = reloaded.prototypes[record.prototypeIndex]
                             CffTranslationValidator.verify(p.code, p.constants,
-                                proof.controlEntries.map { (pc, target) -> CffControlPackets.Site(pc, target) },
+                                proof.controlEntries.map { (pc, target) -> CffControlSite(pc, target) },
                                 proof.destinationPcs, proof.firstPrivateRegister, p.maxStackSize, proof.validationBudget)
                         }
                     }

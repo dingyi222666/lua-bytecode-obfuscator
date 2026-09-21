@@ -22,13 +22,13 @@ class LuaPredicateFamiliesNumericTest {
             code += jumpTo(p.version, code.size, good)
             repeat(2) { code += LuaInstruction.abc(p.version, LuaOpcodes.opcodeOf(p.version, "RETURN")!!, 0, 1) }
             val proof = CffTranslationValidator.verify(code, p.constants,
-                listOf(CffControlPackets.Site(0, 0)), listOf(good, trap), floor, p.maxStackSize, 10000)
+                listOf(CffControlSite(0, 0)), listOf(good, trap), floor, p.maxStackSize, 10000)
             assertEquals(3, proof.paths)
             val compare = plan.setup.size
             code[compare] = if (p.version == LuaBytecodeVersion.LUA_5_3) code[compare].withA(1 - code[compare].a)
                 else code[compare].withK(1 - code[compare].k)
             assertFailsWith<IllegalArgumentException> {
-                CffTranslationValidator.verify(code, p.constants, listOf(CffControlPackets.Site(0, 0)),
+                CffTranslationValidator.verify(code, p.constants, listOf(CffControlSite(0, 0)),
                     listOf(good, trap), floor, p.maxStackSize, 10000)
             }
         }

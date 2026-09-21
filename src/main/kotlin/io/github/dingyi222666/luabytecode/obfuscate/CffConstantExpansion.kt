@@ -59,7 +59,7 @@ internal object CffConstantExpansion {
             }
             CffTranslationValidator.checkStructure(prototype.copy(code = output, constants = constants))
             val verified = CffTranslationValidator.verify(output, constants,
-                proof.controlEntries.map { (pc, target) -> CffControlPackets.Site(mapping[pc], target) },
+                proof.controlEntries.map { (pc, target) -> CffControlSite(mapping[pc], target) },
                 proof.destinationPcs.map { mapping[it] }, proof.firstPrivateRegister, scratch + 1,
                 proof.validationBudget * 2)
             prototype.replaceCodeAndConstants(output, constants)

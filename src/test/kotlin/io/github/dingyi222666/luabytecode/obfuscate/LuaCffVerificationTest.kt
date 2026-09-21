@@ -58,7 +58,7 @@ class LuaCffVerificationTest {
             assertTrue(mutations > 0)
             assertFails {
                 CffTranslationValidator.verify(code, p.constants,
-                    proof.controlEntries.map { (pc, target) -> CffControlPackets.Site(pc, target) },
+                    proof.controlEntries.map { (pc, target) -> CffControlSite(pc, target) },
                     proof.destinationPcs, proof.firstPrivateRegister, p.maxStackSize, proof.validationBudget)
             }
         }

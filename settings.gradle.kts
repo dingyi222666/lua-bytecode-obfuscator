@@ -24,4 +24,5 @@ include(":lua-bytecode-model")
 include(":lua-bytecode-io")
 include(":lua-bytecode-edit")
 include(":lua-bytecode-analysis")
+include(":lua-obfuscation-api")
 

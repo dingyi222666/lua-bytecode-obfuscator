@@ -28,45 +28,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 
 /**
- * Tunables of [LuaConstantEncryptor] (Pass K, `LEAK-2`).
- */
-data class ConstantEncryptionConfig(
-    /**
-     * Upper bound of constants moved into the encrypted blob per chunk
-     * (`0` = unlimited).
-     */
-    val maxConstants: Int = 0,
-
-    /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
-)
-
-/** Statistics of one [LuaConstantEncryptor.encrypt] run. */
-data class ConstantEncryptionResult(
-    /** Number of constants that were replaced by their encrypted blob reference. */
-    val encryptedConstants: Int,
-    /** Number of `LOADK` sites that now call the kget stub. */
-    val rewrittenSites: Int,
-    /** Number of prototypes that received a kget block. */
-    val patchedPrototypes: Int,
-    /**
-     * The prototypes that now contain a kget stub (same flattener contract as
-     * [StringEncryptionResult.stubPrototypes]).
-     */
-    val stubPrototypes: Set<LuaPrototype> = emptySet(),
-    /** Index of the injected kget prototype in the main prototype, `-1` when unused. */
-    val decoderPrototypeIndex: Int = -1,
-    /**
-     * The injected decoder prototype(s). The flattener must NOT rebuild them:
-     * its block rewriting silently corrupted decoded values (Round 1), so
-     * [LuaObfuscator] forwards this set as the flattener's `protectedPrototypes`.
-     */
-    val decoderPrototypes: Set<LuaPrototype> = emptySet(),
-    /** Candidate sites left unchanged because safe expansion was unavailable. */
-    val skippedSites: Int = 0,
-)
-
-/**
  * Encrypts LOADK/LOADKX integer, boolean and floating constants as exact tagged
  * eight-byte payloads. RK and opcode immediates remain outside this pass.
  * Decoder calls use a separate register window; protected CFF capsules use the

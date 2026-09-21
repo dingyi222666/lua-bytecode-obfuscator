@@ -28,6 +28,9 @@ dependencies {
     // Data flow / constant reference / register safety analysis and the chunk
     // printer, KMP commonMain.
     implementation(project(":lua-bytecode-analysis"))
+    // Obfuscation contracts: extension point, pipeline config/report types,
+    // seed policy and the helpers shared across feature modules.
+    implementation(project(":lua-obfuscation-api"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))

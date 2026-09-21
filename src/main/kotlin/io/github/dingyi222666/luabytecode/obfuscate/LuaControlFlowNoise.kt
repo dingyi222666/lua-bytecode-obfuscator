@@ -1,6 +1,5 @@
 package io.github.dingyi222666.luabytecode.obfuscate
 import io.github.dingyi222666.luabytecode.platform.Platform
-import io.github.dingyi222666.luabytecode.platform.IdentityMap
 import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.edit.LuaInstructionFactory
 
@@ -34,44 +33,6 @@ import kotlin.math.roundToInt
  */
 
 // ---------------------------------------------------------------- jump hops
-
-/** Configuration of [LuaJumpIndirection]. */
-data class JumpIndirectionConfig(
-    /** Number of trampoline hops every jump is routed through. */
-    val depth: Int = 1,
-
-    /** Two executable routes per hop, selected from an initialized parameter. */
-    val runtimeRoutes: Boolean = false,
-
-    /** Unreachable, cross-linked control-flow islands (valid Lua instructions). */
-    val decoyBlocks: Int = 0,
-
-    /** Harmless instructions emitted before each hop (junk on the live path). */
-    val junkPerHop: Int = 0,
-
-    /** Also route `FORLOOP` / `FORPREP` / `TFORLOOP` through hops. */
-    val redirectLoopJumps: Boolean = true,
-
-    /** `0` derives a deterministic seed from the chunk. */
-    val seed: Long = 0,
-) {
-    init {
-        require(decoyBlocks in 0..1024) { "decoyBlocks must be in 0..1024" }
-        require(depth in 1..64) { "jump indirection depth must be in 1..64" }
-        require(junkPerHop in 0..64) { "junkPerHop must be in 0..64" }
-    }
-}
-
-/** Statistics of one [LuaJumpIndirection.apply] run. */
-data class JumpIndirectionReport(
-    val redirectedJumps: Int,
-    val trampolines: Int,
-    val injectedInstructions: Int,
-    val decoyBlocks: Int = 0,
-    val runtimeRoutedJumps: Int = 0,
-    val verifiedPaths: Int = 0,
-    val skippedPrototypes: List<String> = emptyList(),
-)
 
 /**
  * Redirects every jump through [JumpIndirectionConfig.depth] trampoline blocks
@@ -134,7 +95,7 @@ object LuaJumpIndirection {
                     regionStart + offsets[order[(site * config.depth + hop) * lanes + lane]]
                 val blocks = arrayOfNulls<List<LuaInstruction>>(total)
                 val targets = sites.map { requireNotNull(candidate.code[it].jumpTarget(it)) }.distinct()
-                val entries = ArrayList<CffControlPackets.Site>()
+                val entries = ArrayList<CffControlSite>()
                 sites.forEachIndexed { siteIndex, site ->
                     val target = requireNotNull(candidate.code[site].jumpTarget(site))
                     require(target in prototype.code.indices) { "invalid original target $target" }
@@ -162,9 +123,9 @@ object LuaJumpIndirection {
                     }
                     val first = block(siteIndex, 0, 0)
                     candidate.edit { set(site, candidate.code[site].retargeted(site, site, first)) }
-                    entries += CffControlPackets.Site(first, targets.indexOf(target))
+                    entries += CffControlSite(first, targets.indexOf(target))
                     // The alternate entrance is checked too, including unreachable first lanes.
-                    if (runtime) entries += CffControlPackets.Site(block(siteIndex, 0, 1), targets.indexOf(target))
+                    if (runtime) entries += CffControlSite(block(siteIndex, 0, 1), targets.indexOf(target))
                 }
                 val appended = blocks.flatMap { requireNotNull(it) }
                 appendObfuscationCode(candidate, appended)
@@ -213,80 +174,6 @@ object LuaJumpIndirection {
 }
 
 // ------------------------------------------------------------------ junk code
-
-/** Configuration of [LuaJunkCode] (花指令 / dead branch injection). */
-data class JunkCodeConfig(
-    /** Harmless instructions on the live path of every guarded block. */
-    val junkPerBlock: Int = 2,
-
-    /** How many jumps receive an opaque guarded branch. */
-    val guardedBranches: Int = 2,
-
-    /**
-     * Guarantee a convergent guard on **every loop back edge** (Collberg §4.3:
-     * extend the loop condition with an always true predicate, so the predicate
-     * is re-evaluated on every iteration). Cheap sites are unaffected.
-     */
-    val alwaysGuardLoopBackEdges: Boolean = false,
-
-    /**
-     * Fraction of guarded branches placed at "hot" sites: loop back edges and
-     * join points (blocks with in-degree >= 2), which is where junk costs the
-     * most to remove (NOP-RL reports 33%-92% fewer instructions needed at
-     * optimal positions).
-     */
-    val hotSiteRatio: Double = 0.7,
-
-    /** Size of the junk inside a dead block. */
-    val deadBlockSize: Int = 4,
-
-    /** Additional blocks that nothing references at all (they form cycles). */
-    val unreachableBlocks: Int = 0,
-
-    /**
-     * Blocks per unreachable cycle: `1` is a self loop, `> 1` builds a longer
-     * "infinite goto" ring that a decompiler has to follow.
-     */
-    val deadCycleLength: Int = 2,
-
-    /** Predicate family; `MIXED` randomises per branch (fingerprint resistance). */
-    val predicateFamily: OpaquePredicate = OpaquePredicate.MIXED,
-
-    /** Also guard `FORLOOP` / `FORPREP` / `TFORLOOP`. */
-    val guardLoopJumps: Boolean = false,
-
-    /** `0` derives a deterministic seed from the chunk. */
-    val seed: Long = 0,
-) {
-    init {
-        require(junkPerBlock in 0..64)
-        require(guardedBranches >= 0)
-        require(hotSiteRatio in 0.0..1.0)
-        require(deadBlockSize in 0..64)
-        require(unreachableBlocks >= 0)
-        require(deadCycleLength >= 1)
-    }
-}
-
-/** Runtime input plus randomly composed integer/bitwise expression families. */
-enum class OpaquePredicate {
-    /** Runtime-seeded comparison of x² and 7(x+1)²-1; never equal modulo 8. */
-    NON_SQUARE,
-    MBA_CARRY_CHAIN,
-    MBA_BORROW_CHAIN,
-    MBA_MASK_SELECT,
-    MBA_PRODUCT_PARTITION,
-    /** Randomized coefficients/encoding of the supported runtime family. */
-    MIXED,
-}
-
-/** Statistics of one [LuaJunkCode.apply] run. */
-data class JunkCodeReport(
-    val guardedJumps: Int,
-    val deadBlocks: Int,
-    val injectedInstructions: Int,
-    val skippedPrototypes: List<String> = emptyList(),
-)
 
 /**
  * Injects junk instructions (花指令) and opaque guarded branches.
@@ -461,172 +348,7 @@ object LuaJunkCode {
         }
     }
 
-    /**
-     * Emits `destination = env[constantIndex]`.
-     *
-     * `GETTABUP` addresses its key with an `RK` operand, and that operand carries
-     * only 8 bits of constant index in every supported version: 5.3 packs the
-     * `BITRK` flag into the 9 bit `C` field, so an index above 255 silently
-     * decodes as `index and 0xFF` and reads a *different* constant (this is the
-     * long standing `big_53` miscompilation), while 5.4 / 5.5 use an 8 bit
-     * constant operand that cannot represent it at all. Larger indices are
-     * therefore staged in a register and read through `GETTABLE`, whose key
-     * operand accepts a register.
-     *
-     * The caller has to reserve [scratch] .. [scratch] + 3.
-     */
-    internal fun appendEnvLookup(
-        setup: MutableList<LuaInstruction>,
-        version: LuaBytecodeVersion,
-        destination: Int,
-        scratch: Int,
-        envUpvalue: Int,
-        constantIndex: Int,
-    ) {
-        if (constantIndex <= MAX_RK_CONSTANT_INDEX) {
-            setup += getTabUp(version, destination, envUpvalue, constantIndex)
-        } else {
-            setup += LuaInstructionFactory.abc(version, "GETUPVAL", scratch + 2, envUpvalue, 0)
-            setup += LuaInstructionFactory.abx(version, "LOADK", scratch + 3, constantIndex)
-            setup += LuaInstructionFactory.abc(version, "GETTABLE", destination, scratch + 2, scratch + 3)
-        }
-    }
-
-    /** `GETTABUP A, env, K[name]` (5.3 encodes the key operand with `BITRK`). */
-    private fun getTabUp(
-        version: LuaBytecodeVersion,
-        destination: Int,
-        envUpvalue: Int,
-        constantIndex: Int,
-    ): LuaInstruction {
-        require(constantIndex <= MAX_RK_CONSTANT_INDEX) {
-            "constant index $constantIndex does not fit the key operand of GETTABUP in ${version.displayName}; " +
-                "use appendEnvLookup, which stages it in a register"
-        }
-        return LuaInstructionFactory.abc(
-            version, "GETTABUP",
-            destination,
-            envUpvalue,
-            if (version == LuaBytecodeVersion.LUA_5_3) rk53(constantIndex) else constantIndex,
-        )
-    }
-
-    /** 5.3 encodes constant operands with `BITRK` set. */
-    private fun rk53(constantIndex: Int): Int = constantIndex or (1 shl 8)
 }
-
-/** `BITRK` masks the constant index of every `RK` operand to 8 bits. */
-private const val MAX_RK_CONSTANT_INDEX = 0xFF
-
-/** Name of the upvalue that holds the global table. */
-private const val ENV_UPVALUE_NAME = "_ENV"
-
-/**
- * Resolves the `_ENV` upvalue index of every prototype of [chunk].
- *
- * The opcodes alone are **not** enough to recognize `_ENV`: on 5.3 any access to
- * an upvalue table compiles to `GETTABUP` (`t[k]` as well as a global `g`) and
- * any assignment to one compiles to `SETTABUP` (`store[i] = v`), so the first
- * such instruction may well reference a local table. `_ENV` is resolved through
- * the closure chain instead:
- *
- * * `lua_load` installs the global table in the first upvalue of the main chunk;
- * * a nested function that reaches globals captures `_ENV` by forwarding the
- *   parent's `_ENV` upvalue, i.e. `inStack == false && index == parentEnv`.
- *
- * A debug name is authoritative when present, because it also covers a source
- * level `local _ENV = ...` shadow. Prototypes whose `_ENV` cannot be proven to
- * hold the globals are absent from the result; callers fall back to a constant
- * seed instead of emitting code that indexes an arbitrary table.
- */
-internal fun resolveEnvUpvalues(chunk: LuaChunk): IdentityMap<LuaPrototype, Int> {
-    val result = IdentityMap<LuaPrototype, Int>()
-
-    fun visit(prototype: LuaPrototype, parentEnv: Int?) {
-        val named = prototype.upvalueNames.indexOfFirst { it?.utf8 == ENV_UPVALUE_NAME }
-        val env = when {
-            named >= 0 -> named
-            prototype === chunk.mainPrototype -> if (prototype.upvalues.isEmpty()) null else 0
-            parentEnv == null -> null
-            else -> prototype.upvalues
-                .indexOfFirst { !it.inStack && it.index == parentEnv }
-                .takeIf { it >= 0 }
-        }
-        if (Platform.debug.enabled("JUNK_DEBUG")) {
-            Platform.debug.log(
-                "[env] proto=${prototype.source}:${prototype.lineDefined} " +
-                    "upvalues=${prototype.upvalues.map { "inStack=${it.inStack},index=${it.index}" }} " +
-                    "names=${prototype.upvalueNames.map { it?.utf8 }} named=$named parentEnv=$parentEnv -> env=$env",
-            )
-        }
-        if (env != null && env < prototype.upvalues.size) {
-            result[prototype] = env
-        }
-        for (child in prototype.nestedPrototypes) {
-            visit(child, env)
-        }
-    }
-
-    visit(chunk.mainPrototype, null)
-    return result
-}
-
-/**
- * Live block cloning with a planted trap (Collberg POPL '98 §4.2).
- *
- * A chosen block `B` is duplicated into **two live copies** appended after the
- * code, and every jump that used to enter `B` is routed through an opaque
- * predicate that provably selects the *good* copy:
- *
- * ```text
- * [compare]           ; proven value, so the branch always skips its successor
- * JMP -> bad          ; the trap: only reached if the predicate is removed
- * JMP -> good         ; the real copy, exactly equivalent to B
- * [good] <copy of B>  ; same instructions, jumps kept on their original targets
- * [bad]  <copy of B with one operand corrupted>
- * ```
- *
- * Both copies continue exactly where `B` continued, so semantics are preserved
- * by construction, while a deobfuscator that deletes the predicate (the standard
- * "non reducible graph" heuristic Collberg calls out) starts executing the
- * corrupted copy. Operands are integers on every path, so the proven predicate
- * cannot be mis-evaluated.
- */
-data class CloneBlocksConfig(
-    /** Cloned blocks per prototype (only blocks with an incoming jump are eligible). */
-    val blocksPerPrototype: Int = 1,
-
-    /** Junk instructions in front of the selecting predicate. */
-    val junkPerGuard: Int = 2,
-
-    /** Corrupt one operand in the trap copy (the good copy is always exact). */
-    val corruptTrapCopy: Boolean = true,
-
-    /**
-     * Only clone blocks that existed before this pass ran. Blocks injected by the
-     * string / junk passes are already noise, and cloning those wastes size for no
-     * extra resilience (found in round 11), so they are excluded by default.
-     */
-    val originalOnly: Boolean = true,
-
-    /** Predicate family / seed policy of the selecting predicate. */
-    val predicateFamily: OpaquePredicate = OpaquePredicate.MIXED,
-
-    /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
-) {
-    init {
-        require(blocksPerPrototype >= 1)
-        require(junkPerGuard in 0..16)
-    }
-}
-
-/** Statistics of one [LuaBlockCloning.apply] run. */
-data class CloneBlocksReport(
-    val clonedPrototypes: Int,
-    val clones: Int,
-    val injectedInstructions: Int,
-)
 
 object LuaBlockCloning {
 
@@ -991,27 +713,6 @@ internal fun junkInstruction(
 private fun opcode(version: LuaBytecodeVersion, name: String): Int =
     LuaOpcodes.opcodeOf(version, name)
         ?: throw LuaBytecodeFormatException("no $name opcode in ${version.displayName}")
-
-/** Deterministic seed derived from the chunk content when [seed] is `0`. */
-internal fun seedFor(seed: Long, chunk: LuaChunk, prototype: LuaPrototype): Long {
-    if (seed != 0L) {
-        return seed + prototype.constantCount * 31L + prototype.instructionCount
-    }
-    var hash = 1469598103934665603L
-    hash = hash * 1099511628211L + chunk.prototypes.size
-    hash = hash * 1099511628211L + prototype.constantCount
-    hash = hash * 1099511628211L + prototype.instructionCount
-    for (constant in prototype.constants) {
-        hash = hash * 1099511628211L + when (constant) {
-            is LuaConstant.Str -> constant.value.bytes.contentHashCode().toLong()
-            is LuaConstant.Integer -> constant.value
-            is LuaConstant.Number -> constant.value.toRawBits()
-            is LuaConstant.Boolean -> if (constant.value) 1L else 0L
-            LuaConstant.Nil -> 17L
-        }
-    }
-    return hash
-}
 
 private fun shuffledIndices(size: Int, random: ObfRandom): IntArray {
     val indices = IntArray(size) { it }

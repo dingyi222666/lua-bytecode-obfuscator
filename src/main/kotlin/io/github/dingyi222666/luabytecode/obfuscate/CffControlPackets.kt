@@ -18,10 +18,10 @@ internal class CffControlPackets(
     private val random: ObfRandom,
 ) {
     data class Packet(val namespace: Int, val local: Int, val target: Int)
-    data class Site(val pc: Int, val target: Int, val variableAtEntry: Boolean = false)
+
     val packets = ArrayList<Packet>()
-    val sites = ArrayList<Site>()
-    private var pendingSite: Site? = null
+    val sites = ArrayList<CffControlSite>()
+    private var pendingSite: CffControlSite? = null
     val features = linkedSetOf("baseline")
     private val version = prototype.version
     private val state = base
@@ -117,7 +117,7 @@ internal class CffControlPackets(
         val existing = packets.firstOrNull { it.namespace == ns && it.target == target }
         val packet = existing ?: Packet(ns, packets.count { it.namespace == ns }, target).also { packets += it }
         require(packet.namespace < namespaceDomain && packet.local < localDomain)
-        pendingSite = Site(builder.size, target, runtime && source == blockCount)
+        pendingSite = CffControlSite(builder.size, target, runtime && source == blockCount)
         projectKey()
         encode(state, packet.local, false, ns)
         encode(namespace, ns, true, 11)

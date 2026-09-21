@@ -2,6 +2,8 @@ package io.github.dingyi222666.luabytecode.obfuscate
 
 import io.github.dingyi222666.luabytecode.platform.Platform
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
+import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
+import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 
 /**
  * PRED-2/LEAK-5 (plan A, master-approved): the obfuscated output must not be a
@@ -78,4 +80,34 @@ object SeedPolicy {
         }
         return hash
     }
+}
+
+/**
+ * Deterministic per-prototype seed derived from the chunk content when a pass
+ * config's [seed] is `0` (the historical behaviour, kept byte-compatible):
+ * FNV-style hash over the prototype shape and constants, mixed with the
+ * explicit seed when one is given.
+ *
+ * Promoted to :lua-obfuscation-api (public): shared by the jumps feature
+ * (`LuaJumpIndirection` / `LuaJunkCode`) and the CFF feature
+ * (`LuaControlFlowFlattening`).
+ */
+fun seedFor(seed: Long, chunk: LuaChunk, prototype: LuaPrototype): Long {
+    if (seed != 0L) {
+        return seed + prototype.constantCount * 31L + prototype.instructionCount
+    }
+    var hash = 1469598103934665603L
+    hash = hash * 1099511628211L + chunk.prototypes.size
+    hash = hash * 1099511628211L + prototype.constantCount
+    hash = hash * 1099511628211L + prototype.instructionCount
+    for (constant in prototype.constants) {
+        hash = hash * 1099511628211L + when (constant) {
+            is LuaConstant.Str -> constant.value.bytes.contentHashCode().toLong()
+            is LuaConstant.Integer -> constant.value
+            is LuaConstant.Number -> constant.value.toRawBits()
+            is LuaConstant.Boolean -> if (constant.value) 1L else 0L
+            LuaConstant.Nil -> 17L
+        }
+    }
+    return hash
 }

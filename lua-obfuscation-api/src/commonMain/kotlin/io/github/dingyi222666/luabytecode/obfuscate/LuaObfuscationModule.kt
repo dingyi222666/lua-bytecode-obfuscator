@@ -20,7 +20,7 @@ interface LuaObfuscationModule {
 }
 
 /** Mutable state shared by modules in one obfuscation run. */
-class LuaObfuscationModuleContext internal constructor(
+class LuaObfuscationModuleContext(
     val chunk: LuaChunk,
     val config: ObfuscationConfig,
     val masterSeed: Long,

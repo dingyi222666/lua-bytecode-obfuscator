@@ -26,51 +26,6 @@ import io.github.dingyi222666.luabytecode.bytecode.edit.LuaPrototypeScope
 import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkLoader
 
 /**
- * Tunables of [LuaStringEncryptor].
- */
-data class StringEncryptionConfig(
-    /**
-     * Only string constants of at least this many bytes are encrypted.
-     * Short literals are usually identifiers, keys or format fragments whose
-     * decryption call would cost more than it protects.
-     */
-    val minLength: Int = 6,
-
-    /** Encrypt global/field/method operands as well as literal loads. */
-    val encryptKeys: Boolean = false,
-
-    /** Upper bound of encrypted constants (`0` = unlimited). */
-    val maxConstants: Int = 0,
-
-    /**
-     * Seed of the key generator. `0` derives a deterministic seed from the chunk
-     * content, so protecting the same chunk twice yields the same output.
-     */
-    val seed: Long = 0,
-)
-
-/** Statistics of one [LuaStringEncryptor.encrypt] run. */
-data class StringEncryptionResult(
-    /** Number of constants that were replaced by their encrypted bytes. */
-    val encryptedConstants: Int,
-    val loweredOperandSites: Int = 0,
-    val remainingPlaintextStrings: Int = 0,
-    /** Number of `LOADK` sites that now call the decoder. */
-    val rewrittenSites: Int,
-    /** Number of prototypes that received decrypt blocks. */
-    val patchedPrototypes: Int,
-    /**
-     * The prototypes that now contain a decryption stub. The flattener uses this to decide
-     * whether its save slot has to be chosen with the strict "never read" rule: a stub can
-     * use a register that is dead at the flattener's dynamic instructions but live on the
-     * stub's own path (goal round 65).
-     */
-    val stubPrototypes: Set<io.github.dingyi222666.luabytecode.bytecode.LuaPrototype> = emptySet(),
-    /** Index of the injected decoder prototype in the main prototype, `-1` when unused. */
-    val decoderPrototypeIndex: Int,
-)
-
-/**
  * Constant pool / string pool encryption.
  *
  * Every eligible string constant is replaced **in place** by its encrypted bytes

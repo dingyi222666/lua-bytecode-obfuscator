@@ -86,7 +86,7 @@ internal object LuaMbaPredicates {
         checked += jumpTo(v, checked.size, trap)
         checked += jumpTo(v, checked.size, good)
         repeat(2) { checked += abc("RETURN", 0, 1) }
-        CffTranslationValidator.verify(checked, p.constants, listOf(CffControlPackets.Site(0, 0)),
+        CffTranslationValidator.verify(checked, p.constants, listOf(CffControlSite(0, 0)),
             listOf(good, trap), base, p.maxStackSize, 100_000)
         return plan
     }

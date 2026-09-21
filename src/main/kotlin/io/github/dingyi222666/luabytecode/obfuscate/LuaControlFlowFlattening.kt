@@ -16,90 +16,6 @@ import io.github.dingyi222666.luabytecode.bytecode.analysis.setAbsoluteLines
 import io.github.dingyi222666.luabytecode.bytecode.analysis.skipsNextInstruction
 import io.github.dingyi222666.luabytecode.bytecode.edit.internConstant
 
-/** Single CFF emitter, with transactional candidates and explicit feature gates. */
-data class ControlFlowFlatteningConfig(
-    /** Master switch. */
-    val enabled: Boolean = true,
-
-    /** `0` derives a deterministic seed from the chunk content. */
-    val seed: Long = 0,
-
-    /** Project original initialized values with TEST; never read _ENV. */
-    val stateRuntime: Boolean = false,
-    val participatingJunk: Boolean = false,
-    val segmentedDispatch: Boolean = false,
-    val indegreeGuards: Boolean = false,
-    val shuffleBlocks: Boolean = false,
-    val splitStraightLine: Boolean = false,
-    val stateNamespaces: Boolean = false,
-    val multipleDispatch: Boolean = false,
-    val nestedDispatch: Boolean = false,
-    val dispatchEffects: Boolean = false,
-    val stateTable: Boolean = false,
-    val predicateFamilies: Set<CffPredicateFamily> = emptySet(),
-    /** Explicit execution contract required by §5; false preserves allocation observations. */
-    val allocationEffectsUnobservable: Boolean = false,
-    val segmentSize: Int = 8,
-    val maxExpansionFactor: Int = 200,
-    val maxValidationSteps: Int = 2_000_000,
-) {
-    init {
-        require(segmentSize > 0)
-        require(maxExpansionFactor > 0 && maxValidationSteps > 0)
-    }
-
-    companion object {
-        val BASELINE = ControlFlowFlatteningConfig()
-        /** Requests all scalar features; actual coverage is reported per prototype. */
-        val FULL = ControlFlowFlatteningConfig(
-            stateRuntime = true, stateNamespaces = true, participatingJunk = true,
-            segmentedDispatch = true, multipleDispatch = true, nestedDispatch = true,
-            dispatchEffects = true, indegreeGuards = true, shuffleBlocks = true,
-            splitStraightLine = true,
-            predicateFamilies = setOf(CffPredicateFamily.NON_SQUARE),
-        )
-    }
-}
-/** Statistics of one [LuaControlFlowFlattening.apply] run. */
-data class ControlFlowFlatteningReport(
-    val flattenedPrototypes: Int,
-    val skippedPrototypes: Int,
-    val blocks: Int,
-    val guards: Int,
-    val injectedInstructions: Int,
-    /** §8 root cause codes -> how many prototypes were refused for each. */
-    val refusals: Map<String, Int> = emptyMap(),
-    /** The features that were actually enabled for this run (§9.6.5). */
-    val appliedFeatures: List<String> = emptyList(),
-    val prototypes: List<CffPrototypeReport> = emptyList(),
-) {
-    override fun toString(): String = buildString {
-        append("$flattenedPrototypes prototypes, $blocks blocks")
-        if (guards > 0) append(", $guards converging guards")
-    }
-}
-
-data class CffPrototypeReport(
-    val prototypeIndex: Int,
-    val status: String,
-    val requestedFeatures: List<String>,
-    val actualFeatures: List<String>,
-    val reasons: List<String>,
-    val verifiedControlPaths: Int = 0,
-    val verificationSteps: Int = 0,
-    val proof: CffProofManifest? = null,
-)
-
-/** Build-side certificate; never serialized into Lua constants or debug metadata. */
-data class CffProofManifest(
-    val controlEntries: List<Pair<Int, Int>>,
-    val destinationPcs: List<Int>,
-    val firstPrivateRegister: Int,
-    val validationBudget: Int,
-    /** Only entry parameters have a two-input variability witness; edge truth may be fixed by a branch. */
-    val variableSeedSites: Int = 0,
-)
-
 private fun ControlFlowFlatteningConfig.requestedFeatures(): List<String> = buildList {
     add("baseline")
     if (stateRuntime) add("state.runtime")
@@ -115,8 +31,6 @@ private fun ControlFlowFlatteningConfig.requestedFeatures(): List<String> = buil
     if (participatingJunk) add("junk.participating")
     predicateFamilies.forEach { add("predicate.${it.name.lowercase()}") }
 }
-
-enum class CffPredicateFamily { NON_SQUARE, PRIVATE_STRUCTURE, GRAPH }
 
 object LuaControlFlowFlattening {
 
