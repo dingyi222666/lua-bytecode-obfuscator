@@ -5,21 +5,21 @@
 // Source of truth: the jvmMain resources of :lua-obfuscation-strings
 // (/obfuscator/decode_NN.luac) and :lua-obfuscation-constants
 // (/obfuscator/decode_num_NN.luac). The md5 digests below are asserted on the
-// JVM side by the DecoderAssetIntegrityTest of both feature modules and on
-// the js side by :lua-runtime-js LuaDecoderAssetsJsTest, so the two deliveries
-// cannot drift apart silently.
+// JVM side by the DecoderAssetIntegrityTest of both feature modules and on the
+// js side by the LuaDecoderAssetsJsTest suite, so the three
+// deliveries (JVM classpath, js, native) cannot drift apart silently.
 package io.github.dingyi222666.luabytecode.runtime.js
 
 import kotlin.io.encoding.Base64
 
 /**
- * JS delivery of the bundled decoder stub chunks (roadmap step 6). The
- * strings / constants passes load these through `Platform.bundledChunks`
+ * JS delivery of the bundled decoder stub chunks (roadmap step 6).
+ * The strings / constants passes load these through `Platform.bundledChunks`
  * exactly like on the JVM — only the transport differs (committed base64
- * constants instead of classpath resources, see [JsPlatform]).
+ * constants instead of classpath resources).
  *
  * Bytes are identical to the JVM classpath assets; the digests are pinned by
- * tests on both platforms.
+ * tests on every platform.
  */
 object LuaDecoderAssetsJs {
 

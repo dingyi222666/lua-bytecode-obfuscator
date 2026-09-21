@@ -36,6 +36,10 @@ include(":lua-vm")
 // composition root, shared by the JVM library entry, the web runtime and the
 // native CLI.
 include(":lua-obfuscation-pipeline")
+// Native CLI (roadmap step 6b): the default command line entry of the
+// project — linuxX64 assembly of the pipeline with the native platform seam
+// implementations and the embedded decoder assets.
+include(":lua-cli-native")
 // Web runtime (roadmap step 6): js-only assembly of the common pipeline with
 // the platform seam implementations, the bundled decoder assets as committed
 // base64 constants and the minimal static web UI.

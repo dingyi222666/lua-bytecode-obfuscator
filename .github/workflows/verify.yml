@@ -27,6 +27,13 @@ jobs:
       - name: Build
         run: ./gradlew build --stacktrace
 
+      - name: Native CLI smoke (linked release executable)
+        run: |
+          EXE=lua-cli-native/build/bin/native/releaseExecutable/lua-cli-native.kexe
+          test -x "$EXE" || { echo "release executable not linked at $EXE"; exit 1; }
+          "$EXE" --help > /dev/null
+          echo "native CLI runs: $EXE"
+
       - name: KMP purity gate
         run: bash tools/verify-kmp-purity.sh
 
