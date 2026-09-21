@@ -1,3 +1,7 @@
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 // Compose Multiplatform web host (Compose Web 改造 Round 3). A wasmJs browser
 // executable that assembles the same common library pipeline as
 // :lua-runtime-js / :lua-cli-native behind a Compose material3 UI:
@@ -38,7 +42,7 @@ kotlin {
                 // Without this the dist entry is named after the Gradle
                 // project (lua-web-compose.js); pin it so index.html and the
                 // CI smoke can rely on a stable name.
-                outputFileName.set("composeApp.js")
+                outputFileName = "composeApp.js"
             }
         }
         binaries.executable()
