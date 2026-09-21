@@ -5,11 +5,7 @@ import io.github.dingyi222666.luabytecode.platform.ObfRandom
 import io.github.dingyi222666.luabytecode.bytecode.LuaChunk
 import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
-import io.github.dingyi222666.luabytecode.obfuscate.ControlFlowFlatteningConfig
 import io.github.dingyi222666.luabytecode.obfuscate.ControlFlowFlatteningReport
-import io.github.dingyi222666.luabytecode.obfuscate.LuaControlFlowFlattening
-import io.github.dingyi222666.luabytecode.obfuscate.LuaObfuscator
-import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationReport
 
 /**
@@ -71,45 +67,56 @@ object LuaVmObfuscation {
         val debug: Boolean = false,
         /** Opt-in Lua 5.4/5.5 count-based numeric-for support. */
         val enableCountBasedLoops: Boolean = false,
-        /** Existing library pipeline applied to a private copy before VM lifting. */
-        val inputObfuscation: ObfuscationConfig? = null,
         /**
-         * CFF applied to a private copy of the input before VM lifting. This is enabled by
-         * default: VM input is required to be an already-obfuscated representation. Set it to
-         * null only for compatibility experiments, and set [requireSourceCff] to false as well.
+         * Input staging stage, wired by the host (the orchestrator module, see
+         * `LuaVmPipeline`): applies the library obfuscation pipeline to the private
+         * working copy before VM lifting. `null` disables input staging. The vm
+         * module itself depends on no feature module and no orchestrator, so the
+         * executor travels as a stage instead of a direct call.
          */
-        // Kept opt-in for the compatibility entry point. New callers that require the
-        // documented VM contract should use [obfuscated] or set both fields explicitly.
-        val sourceCff: ControlFlowFlatteningConfig? = null,
+        val inputObfuscation: InputObfuscationStage? = null,
+        /**
+         * Source CFF stage applied to the private working copy before VM lifting. This is
+         * part of the documented VM contract (VM input is required to be an already-obfuscated
+         * representation); leave it `null` only for compatibility experiments, and set
+         * [requireSourceCff] to false as well. Wired by the host via `LuaVmPipeline.sourceCff`.
+         */
+        val sourceCff: SourceCffStage? = null,
         val requireSourceCff: Boolean = false,
         /** Apply the lightweight source-level CFF pass to the generated Lua host. */
         val interpreterCff: Boolean = true,
     )
 
+    /**
+     * Host-wired executor of the library obfuscation pipeline: the stage receives the
+     * private working copy plus the VM seed (the host stamps it as the pipeline's
+     * master seed) and returns the pipeline report.
+     */
+    fun interface InputObfuscationStage {
+        fun apply(working: LuaChunk, seed: Long): ObfuscationReport
+    }
+
+    /** Host-wired executor of a source CFF pass over the private working copy. */
+    fun interface SourceCffStage {
+        fun apply(working: LuaChunk): ControlFlowFlatteningReport
+    }
+
     fun emitModule(chunk: LuaChunk, random: ObfRandom, options: Options = Options()): String? {
         return emitModuleDetailed(chunk, random, options)?.module
     }
-
-    /** Strict VM entry point: the input representation must pass source CFF before lifting. */
-    fun obfuscated(chunk: LuaChunk, random: ObfRandom, options: Options = Options(
-        inputObfuscation = ObfuscationConfig.AGGRESSIVE,
-        sourceCff = null,
-        requireSourceCff = false,
-    )): Emission? = emitModuleDetailed(chunk, random, options)
 
     /**
      * Emits a module and its explicit protection manifest. The detailed entry point is useful
      * to packaging frontends: a successful Lua module is not silently presented as fully
      * CFF-protected when the generated host interpreter has not gone through the second CFF
-     * compilation/lift/validation stage yet.
+     * compilation/lift/validation stage yet. The strict `obfuscated` entry point (input
+     * staging + source CFF wired to the real pipeline) lives in the orchestrator module
+     * (`LuaVmPipeline.obfuscated`), which owns the feature executors.
      */
     fun emitModuleDetailed(chunk: LuaChunk, random: ObfRandom, options: Options = Options()): Emission? {
         val working = cloneChunk(chunk)
-        val obfuscationReport = options.inputObfuscation?.let { config ->
-            LuaObfuscator.obfuscate(working, config.copy(masterSeed = options.seed))
-        }
-        val cffReport = options.sourceCff?.let { LuaControlFlowFlattening.apply(working, it) }
-            ?: obfuscationReport?.controlFlowFlattening
+        val obfuscationReport = options.inputObfuscation?.let { stage -> stage.apply(working, options.seed) }
+        val cffReport = options.sourceCff?.let { stage -> stage.apply(working) } ?: obfuscationReport?.controlFlowFlattening
         if (options.requireSourceCff && options.sourceCff == null && obfuscationReport?.controlFlowFlattening == null) return null
         if (options.requireSourceCff && (cffReport == null || cffReport.flattenedPrototypes == 0)) {
             if (options.debug) Platform.debug.log("[vm] source CFF did not apply to any prototype")
