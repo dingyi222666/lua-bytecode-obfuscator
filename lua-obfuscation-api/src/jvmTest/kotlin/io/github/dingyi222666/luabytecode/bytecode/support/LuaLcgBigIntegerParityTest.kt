@@ -26,4 +26,23 @@ class LuaLcgBigIntegerParityTest {
             assertEquals(expected, state, "half-split wrong at multiplier ${spec.multiplier}")
         }
     }
+
+    @Test
+    fun `applySeed maps the zero mixing seed to the golden fallback`() {
+        val spec = LcgSpec(1664525L, 1013904223L)
+        assertEquals(
+            0x9E3779B9L,
+            spec.applySeed(mixerZeroSeed().toLong()),
+            "seed that mixes to 0 must map to the golden fallback",
+        )
+    }
+
+    /** seed with `(seed * MIXER_MUL + MIXER_INC) mod 2^32 == 0`. */
+    private fun mixerZeroSeed(): Int {
+        val mul = java.math.BigInteger.valueOf(LcgSpec.MIXER_MULTIPLIER)
+        val inc = java.math.BigInteger.valueOf(LcgSpec.MIXER_INCREMENT)
+        val m = java.math.BigInteger.valueOf(LcgSpec.MODULUS)
+        val seed = inc.negate().multiply(mul.modInverse(m)).mod(m)
+        return seed.toInt()
+    }
 }
