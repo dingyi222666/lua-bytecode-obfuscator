@@ -68,6 +68,9 @@ val cliRuntimeClasspath = sourceSets["main"].runtimeClasspath
 // an application artifact — there is still no `application` plugin and no
 // mainClass here (the native CLI is the only default CLI, roadmap step 6b).
 tasks.register("exportCliRuntimeClasspath") {
+    // Materialize the classpath entries too: the differential CI job runs this
+    // task alone on a fresh runner workdir where nothing has been built yet.
+    dependsOn(cliRuntimeClasspath.buildDependencies)
     doLast {
         val out = file("$buildDir/cli-runtime-classpath.txt")
         out.parentFile.mkdirs()
