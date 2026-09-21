@@ -10,7 +10,7 @@
 | 1 | 第 1 步 | 纯数据结构、opcode、常量和 prototype 移入 `:lua-bytecode-model`（commonMain） | 部分完成（2026-09-21） |
 | 2 | 第 2 步 | `java.io` / `java.nio` / `java.util.Random` / `MessageDigest` 等替换为 expect/actual 或平台接口 | **完成（2026-09-21）** |
 | 3 | 第 3 步 | reader/writer 与 editor DSL 拆成独立模块（保留包名兼容 facade） | **完成（2026-09-21）** |
-| 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | 未开始 |
+| 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | **完成（2026-09-21）** |
 | 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | 未开始 |
 | 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | 未开始 |
 | 终验 | 第 7 步 | 现有 225 tests、三版本差分矩阵、VM 矩阵全绿验收 | 未开始 |
@@ -175,6 +175,147 @@
 - io/edit 的 `implementation(project(...))` 依赖尚未提升为 `api`；Phase 4/5 若把模块发布为独立
   artifact，需要按公共 API 暴露面重新标注 api/implementation。
 - 根测试 TestFixtures.kt 与 io/edit 副本三处并存（有意为之，见决策 5）；修改 fixture 清单时需同步。
+
+## Phase 4：:lua-bytecode-analysis / :lua-obfuscation-api / 五个 feature 模块（2026-09-21 完成）
+
+### 模块图现状
+
+```text
+:lua-platform             commonMain: platform.{Hex,IdentityCollections,Md5,ObfRandom,PlatformIo}
+                          jvmMain:    platform.jvm.JvmPlatform（自根模块迁入，供各模块测试 install）
+:lua-bytecode-model       commonMain: 11 文件全量模型；commonTest: LuaInstructionTest
+:lua-bytecode-io          commonMain: bytecode.io.{LuaChunkReader,LuaChunkWriter,LuaChunkLoader}
+                          jvmMain:    platform.jvm.LuaChunkIoJvm
+:lua-bytecode-edit        commonMain: bytecode.edit 四文件 + bytecode.analysis.{LuaCodeRelocation,LuaLineInfo}
+:lua-bytecode-analysis    commonMain: bytecode.analysis.{LuaConstantReferences,LuaDataFlow}
+                                    + bytecode.print.LuaChunkPrinter
+                                    + bytecode.support.LuaRegisterAnalysis
+:lua-obfuscation-api      commonMain: 契约层（扩展点/pipeline 配置/报告/SeedPolicy/共享 helper，
+                                      全部保持包名 io.github.dingyi222666.luabytecode.obfuscate，
+                                      LcgSpec/LuaDecodeVariants 保持 bytecode.support）
+:lua-obfuscation-strings  commonMain: LuaStringEncryptor/LuaStringCipher/LuaStringOperandLowering
+                          jvmMain resources: obfuscator/decode_{53,54,55}.luac（decoder 随模块走）
+:lua-obfuscation-constants commonMain: LuaConstantEncryptor/ConstCipher
+                          jvmMain resources: obfuscator/decode_num_{53,54,55}.luac
+:lua-obfuscation-jumps    commonMain: LuaControlFlowNoise（JumpIndirection/Junk/BlockCloning）
+                                    + LuaTailReturn + LuaMbaPredicates
+:lua-obfuscation-cff      commonMain: LuaControlFlowFlattening + CffControlPackets + CffConstantExpansion
+:lua-obfuscation-register commonMain: LuaRegisterObfuscator
+根模块（frontends）        main: LuaObfuscator（编排器）、LuaKeyRenaming、LuaHostSeed、
+                                vm/、cli/、decompile/、B4*；test: 跨 pass 集成测试
+```
+
+依赖方向无环：`platform ← model ← io ← edit ← analysis ← api ← {strings,constants,jumps,cff,register} ← 根`。
+**feature 之间零依赖**。全部九个 KMP 模块 `kotlin("multiplatform")` + `jvm()` + jvmToolchain(17) +
+`maven-publish`（group=io.github.dingyi222666，version 1.0-SNAPSHOT）；根模块仍是 kotlin jvm（CLI application）。
+
+### 文件归属映射表（Phase 4 迁移清单）
+
+| 原位置（根） | 新归属 | 说明 |
+|---|---|---|
+| bytecode/analysis/LuaConstantReferences.kt | :lua-bytecode-analysis | `relocated` 依赖 edit 的 `retargeted` → analysis 依赖 edit（Phase 3 遗留就此闭环） |
+| bytecode/analysis/LuaDataFlow.kt | :lua-bytecode-analysis | 纯 model |
+| bytecode/print/LuaChunkPrinter.kt | :lua-bytecode-analysis | 归属理由：只读"检验"渲染器（供人眼/测试核对），非序列化（io）、非模型（model） |
+| bytecode/support/LuaRegisterAnalysis.kt | :lua-bytecode-analysis | 本质是数据流安全分析；唯一消费者 register feature 本就依赖 analysis |
+| bytecode/support/LuaLcg.kt | :lua-obfuscation-api | 共享 keystream 原语（提升清单 #6） |
+| bytecode/support/LuaDecodeVariants.kt | :lua-obfuscation-api | B2 decode-skeleton 变体（提升清单 #7），Phase 5 :lua-vm 直接消费 |
+| obfuscate/LuaObfuscationModule.kt | :lua-obfuscation-api | context 构造器 internal→public（根编排器要构造） |
+| obfuscate/SeedPolicy.kt | :lua-obfuscation-api | 追加提升的 `seedFor`（public） |
+| obfuscate/LuaArithmetic.kt | :lua-obfuscation-api | internal→public |
+| obfuscate/LuaObfuscationEditing.kt | :lua-obfuscation-api | internal→public（五个 feature 都用其中若干扩展） |
+| obfuscate/CffTranslationValidator.kt | :lua-obfuscation-api | internal→public；签名改用 CffControlSite |
+| （新）CffControlSite.kt / LuaEnvLookup.kt / LuaObfuscationConfig.kt / LuaObfuscationOptions.kt / LuaObfuscationReports.kt | :lua-obfuscation-api | 见提升清单与类型抽取说明 |
+| obfuscate/LuaStringEncryptor.kt（去掉 Config/Result）| :lua-obfuscation-strings | |
+| obfuscate/LuaStringCipher.kt、LuaStringOperandLowering.kt | :lua-obfuscation-strings | OperandLowering 保持 internal（仅本模块用） |
+| obfuscate/LuaConstantEncryptor.kt（去掉 Config/Result）、ConstCipher.kt | :lua-obfuscation-constants | |
+| obfuscate/LuaControlFlowNoise.kt（去掉 7 个配置/报告类型、seedFor、env-lookup） | :lua-obfuscation-jumps | |
+| obfuscate/LuaTailReturn.kt（嵌套 Report 提升为 api 的 TailReturnReport） | :lua-obfuscation-jumps | ObfuscationReport.tailReturn 字段类型随之改为 TailReturnReport? |
+| obfuscate/LuaMbaPredicates.kt | :lua-obfuscation-jumps | **偏离任务草案**：唯一消费者是 LuaJunkCode（jumps）；CFF 用的是自己的 CffPredicateFamily 机制，与 OpaquePredicate 无关 |
+| obfuscate/LuaControlFlowFlattening.kt（去掉 Config/Report/Manifest/Family） | :lua-obfuscation-cff | `requestedFeatures()` 私有扩展留在 cff |
+| obfuscate/CffControlPackets.kt（去掉嵌套 Site） | :lua-obfuscation-cff | 仅 flattener 构造；jumps 只用 Site → 已提升 |
+| obfuscate/CffConstantExpansion.kt | :lua-obfuscation-cff | internal→public（根编排器在 flattening 与 Pass K 之间驱动） |
+| obfuscate/LuaRegisterObfuscator.kt（去掉 Config/Report） | :lua-obfuscation-register | |
+| obfuscate/LuaObfuscator.kt（只剩编排器）、LuaKeyRenaming.kt、LuaHostSeed.kt | 根模块 | 横切/编排件（任务决策）：keyRenaming 调 LuaTailReturn（jumps）、hostSeed 调 env-lookup（api）+LuaJunkCode 的产物约定；编排器必须在 feature 之上 |
+| platform/jvm/JvmPlatform.kt | :lua-platform jvmMain | feature 模块测试需 install（classpath 资产/熵），不能反向依赖根 |
+
+### helper 提升清单（进入 :lua-obfuscation-api 的共享件）
+
+| 提升件 | 消费者 | 提升原因 |
+|---|---|---|
+| LuaArithmetic | cff（flattener/packets/validator/expansion）+ jumps（junk/cloning） | 双 feature |
+| LuaObfuscationEditing（detachedCopy/commitFrom/edit/installClosurePrologue 等） | strings/constants/jumps/cff/register | 全部 feature |
+| CffControlSite（原 CffControlPackets.Site，提升+改名） | cff + jumps + api(validator) | 双 feature 交换的记录类型 |
+| CffTranslationValidator | cff + jumps | 双 feature |
+| appendEnvLookup / resolveEnvUpvalues（自 LuaControlFlowNoise/LuaJunkCode 拆出） | jumps + 根(LuaHostSeed→未来 vm) | feature 与上层共享 |
+| seedFor | jumps + cff | 双 feature |
+| LuaLcg (LcgSpec) | 根（host-seed/decode-variants）、未来 :lua-vm | 文档定义的"VM 密码流 + Pass K 共享原语" |
+| LuaDecodeVariants | 现仅测试；Phase 5 :lua-vm 的 B2 splice 源 | 与 LcgSpec 成对的上层共享件 |
+| 9 个 pass 配置 + OpaquePredicate/CffPredicateFamily | api(LuaObfuscationConfig) + 各 feature | 契约层 |
+| 9 个报告类型 + TailReturnReport + ObfuscationConfig/ObfuscationReport | api + 各 feature + 根 | 契约层 |
+
+### 测试归属表
+
+| 测试 | 归属 | 层级 |
+|---|---|---|
+| LuaConstantReferencesTest / LuaDataFlowLivenessTest / LuaDataFlowRkModelTest / LuaChunkPrinterTest / LuaRegisterAnalysisTest | :lua-bytecode-analysis jvmTest | fixture 型（luac classpath）→ jvmTest + TestFixtures 副本 |
+| LuaLineInfoTest | :lua-bytecode-edit jvmTest | 测 edit 自己的 LuaLineInfo/setAbsoluteLines；real/*.luac 副本加入 edit |
+| LuaLcgTest / LuaDecodeVariantsTest | :lua-obfuscation-api commonTest | 纯 |
+| LuaVariantDumpTest | :lua-obfuscation-api jvmTest | /tmp dump harness（java.io） |
+| LuaStringEncryptorTest | :lua-obfuscation-strings jvmTest | pass 级（decoder 资产在模块 jvmMain/resources） |
+| LuaConstantEncryptorTest（2/3 方法） | :lua-obfuscation-constants jvmTest | pass 级（参数族/round trip） |
+| LuaControlFlowNoiseTest / LuaPredicateFamiliesNumericTest | :lua-obfuscation-jumps jvmTest | pass 级 |
+| LuaCffVerificationTest | :lua-obfuscation-cff jvmTest | pass 级（validator） |
+| LuaRegisterObfuscatorTest（7/8 方法） | :lua-obfuscation-register jvmTest | pass 级 |
+| StringCoverageTest、LuaPipelineConstantLeakTest（原 AGGRESSIVE 零明文验收拆出） | 根 | 全管线集成（经 LuaObfuscator） |
+| LuaControlFlowFlatteningTest / LuaCffSemanticsTest / LuaBlockCloningTest / LuaRegisterFlowTest / LuaJumpStringsCompositionTest（自 NoiseTest 拆出）/ LuaRegisterPipelineTest（自 RegisterObfuscatorTest 拆出） | 根 | 全管线集成（feature 测试类不得编译 LuaObfuscator：api 在 feature 之下、根在 feature 之上） |
+| LuaHostSeedTest / LuaAdvancedProtectionTest / LuaRealWorldObfuscationTest / SingleModuleIsolationTest（新增） | 根 | 编排器/横切/开关证明 |
+| vm/、platform/、editing DSL 等根测试 | 根 | 不变 |
+
+注：TestFixtures.kt 现为 **9 份有意并存**（root/io/edit/analysis + strings/constants/jumps/cff/register
+的 jvmTest 各一份）；改 fixture 清单需同步所有副本。feature jvmTest 均带 InstallJvmPlatformExtension +
+services 注册 + junit-platform.properties（与根同机制）+ bytecode/lua/real 资源子集。
+
+### 编排器开关验证
+
+- 现状即"配置驱动开关"：ObfuscationConfig 每个可选项是 nullable 字段，null=禁用；无需把硬编码管线重构成列表注入。
+- 新增根测试 `SingleModuleIsolationTest`：`nothing enabled runs no pass at all` +
+  `each feature can be enabled alone and every other pass stays off` —— 8 个用例
+  （strings/constants/jumps/junk/clones/cff/registers/keys）逐个单独启用，断言报告中**恰好**该 feature 的
+  section 非空、其余全空、extension modules 为空、dump→reload 可加载。
+
+### 关键决策与踩坑
+
+1. **跨模块 smart cast 根除**：config/report 类型迁入 api 后，`cfg.junkCode`/`report.stringEncryption`
+   等跨模块 public val 不能再 smart cast——cli/Main 用 `checkNotNull`，根测试用局部 val 绑定。
+2. **KMP 模块忽略 `src/main/resources`**：decoder 资产曾放 strings/constants 的 `src/main/resources`，
+   jvmTest 类路径上不存在（"missing bundled decoder resource"）。MPP 的 JVM 资源必须放
+   `src/jvmMain/resources`（或 commonMain/resources）。资产归属 feature 模块本体（而非仅测试资源），
+   保证 artifact 自包含；根 CLI 经传递依赖照常可读。
+3. **jumps 测试引用 LuaStringEncryptor**（组合性用例）→ 方法拆到根 `LuaJumpStringsCompositionTest`，
+   维持 feature 互不依赖。
+4. **LuaMbaPredicates 归 jumps 而非 cff**（偏离任务草案，见归属表）；jumps 实际依赖的 CFF 设施只有
+   validator + control-site 记录，均已提升 api，故 CffControlPackets 本体（依赖 flattener 的
+   CodeBuilder/LabelSupply）留在 cff。
+5. **CffControlPackets.Site → 顶层 CffControlSite**：jumps/cff/api 三方交换的记录类型不能挂在
+   cff 内部类上；全局改 6 处调用点。
+6. purity gate SCOPE 一次性预扩到全部 7 个新模块 commonMain（目录缺失即跳过）。
+
+### Phase 4 验证
+
+按提交序列逐个 CI 验证（`gh run watch`）：
+
+- `:lua-bytecode-analysis`：run 35558522220
+- `:lua-obfuscation-api` + strings/constants（api 一处 import 笔误致红，fix-forward）：run 35559260842（红）→ 35559762552（红，暴露 3 个真实耦合点）
+- jumps/cff/register + 管线测试归位：35560270339（checkout 网络抖动 GnuTLS -110）→ 35560863036（红：资产路径 + 跨 feature 测试）→ 35561426286（红：根测试编译）→ 35561870800（红：isolation 测试逻辑）
+- **全绿：run 35562273651**（build 全模块 + 根/analysis/api/strings/constants/jumps/cff/register 全部测试 + purity gate OK）
+
+### Phase 4 遗留项
+
+- 各模块 `implementation` 依赖尚未按公共 API 暴露面提升为 `api`（真实发布前需梳理；`maven-publish` 已就位）。
+- feature 模块仅 `jvm()` target；js/native 加入时 decoder 资产与 fixture 加载需 expect/actual。
+- TestFixtures.kt 多副本（7 份）与 fixture 资源多副本继续并存；后续可抽 `shared-test-fixtures` 模块收敛。
+- 根模块仍持有 LuaKeyRenaming/LuaHostSeed/编排器；若 Phase 5 拆 `:lua-vm`，二者可随之下沉。
+- `SingleModuleIsolationTest` 目前只证报告层隔离；字节级"其他 pass 未触碰"可后续加 dump diff 断言。
 
 ## Phase 1：问题记录（历史）
 
