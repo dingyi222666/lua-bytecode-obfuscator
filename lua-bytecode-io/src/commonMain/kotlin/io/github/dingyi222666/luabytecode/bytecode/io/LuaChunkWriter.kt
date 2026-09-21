@@ -8,8 +8,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaPrototype
 import io.github.dingyi222666.luabytecode.bytecode.LuaString
 import io.github.dingyi222666.luabytecode.bytecode.LuaVarintStyle
 import io.github.dingyi222666.luabytecode.bytecode.LuaByteOrder
-import io.github.dingyi222666.luabytecode.bytecode.edit.edit
-import io.github.dingyi222666.luabytecode.bytecode.edit.replacing
 
 /** `LUA_SIGNATURE` — `ESC "Lua"`. */
 private val DUMP_SIGNATURE = byteArrayOf(0x1B, 'L'.code.toByte(), 'u'.code.toByte(), 'a'.code.toByte())

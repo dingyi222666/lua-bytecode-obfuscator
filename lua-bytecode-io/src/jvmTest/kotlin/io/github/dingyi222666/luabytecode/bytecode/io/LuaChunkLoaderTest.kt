@@ -7,7 +7,6 @@ import io.github.dingyi222666.luabytecode.bytecode.LuaConstant
 import io.github.dingyi222666.luabytecode.bytecode.LuaOpcodes
 import io.github.dingyi222666.luabytecode.bytecode.TestFixtures
 import io.github.dingyi222666.luabytecode.bytecode.allConstants
-import io.github.dingyi222666.luabytecode.bytecode.edit.stringConstants
 import io.github.dingyi222666.luabytecode.bytecode.loadFixture
 import io.github.dingyi222666.luabytecode.bytecode.stringConstant
 import io.github.dingyi222666.luabytecode.bytecode.stringConstantTexts
@@ -276,9 +275,9 @@ class LuaChunkLoaderTest {
         val chunk = loadFixture("dedup_55.luac")
 
         val literals = chunk.prototypes
-            .flatMap { it.stringConstants() }
-            .filter { (_, value) -> value.utf8 == "shared_literal" }
-            .map { it.second }
+            .flatMap { prototype -> prototype.constants.filterIsInstance<LuaConstant.Str>() }
+            .map { it.value }
+            .filter { it.utf8 == "shared_literal" }
         assertTrue(literals.size >= 2, "the fixture repeats the literal in several prototypes")
         literals.forEach { assertSame(literals[0], it, "5.5 must resolve the reuse index to one instance") }
 
@@ -291,9 +290,9 @@ class LuaChunkLoaderTest {
 
         // 5.3 / 5.4 have no reuse table: equal strings are separate instances.
         val oldLiterals = loadFixture("dedup_53.luac").prototypes
-            .flatMap { it.stringConstants() }
-            .filter { (_, value) -> value.utf8 == "shared_literal" }
-            .map { it.second }
+            .flatMap { prototype -> prototype.constants.filterIsInstance<LuaConstant.Str>() }
+            .map { it.value }
+            .filter { it.utf8 == "shared_literal" }
         assertTrue(oldLiterals.size >= 2)
         assertTrue(oldLiterals.any { it !== oldLiterals[0] })
     }

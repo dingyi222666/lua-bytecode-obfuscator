@@ -21,6 +21,8 @@ dependencies {
     implementation(project(":lua-platform"))
     // Pure bytecode model types (opcode/instruction/version tables), KMP commonMain.
     implementation(project(":lua-bytecode-model"))
+    // Reader/writer/loader of Lua binary chunks, KMP commonMain + JVM adapters.
+    implementation(project(":lua-bytecode-io"))
     // Legacy source level string obfuscation only.
     implementation("io.github.dingyi222666:luaparser:1.0.3")
     testImplementation(kotlin("test"))
