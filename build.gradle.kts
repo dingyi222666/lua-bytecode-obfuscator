@@ -16,6 +16,9 @@ repositories {
 }
 
 dependencies {
+    // Pure platform seams and helpers (hex/md5/random/identity collections and
+    // the entropy/asset/debug service contracts), KMP commonMain.
+    implementation(project(":lua-platform"))
     // Pure bytecode model types (opcode/instruction/version tables), KMP commonMain.
     implementation(project(":lua-bytecode-model"))
     // Legacy source level string obfuscation only.

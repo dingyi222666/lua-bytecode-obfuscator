@@ -15,8 +15,13 @@
 #     kotlin.jvm.* imports
 #
 # Whitelisted (JVM by design, they are adapters and entrypoints):
-#   cli/, legacy/, decompile/, B4Diag.kt, B4EffectRunner.kt and
-#   platform/jvm/ (the JVM implementations of the platform seams).
+#   cli/, legacy/, decompile/, B4Diag.kt, B4EffectRunner.kt,
+#   platform/jvm/ in the root module and every */src/jvmMain/* source set
+#   (the JVM implementations of the platform seams and io adapters).
+#
+# Since roadmap step 3 the common code of the extracted KMP modules is scanned
+# too: :lua-platform / :lua-bytecode-model / :lua-bytecode-io /
+# :lua-bytecode-edit commonMain must stay pure.
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,6 +31,10 @@ SCOPE=(
   src/main/kotlin/io/github/dingyi222666/luabytecode/obfuscate
   src/main/kotlin/io/github/dingyi222666/luabytecode/vm
   src/main/kotlin/io/github/dingyi222666/luabytecode/platform
+  lua-platform/src/commonMain
+  lua-bytecode-model/src/commonMain
+  lua-bytecode-io/src/commonMain
+  lua-bytecode-edit/src/commonMain
 )
 
 strip_comments() {
@@ -58,9 +67,10 @@ violations=0
 for dir in "${SCOPE[@]}"; do
   [ -d "$dir" ] || continue
   while IFS= read -r -d '' file; do
-    # platform/jvm is the whitelist: it is the JVM adapter, not common code.
+    # Whitelist the JVM adapters: the root module's platform/jvm package and
+    # the jvmMain source sets of the extracted KMP modules.
     case "$file" in
-      */platform/jvm/*) continue ;;
+      */platform/jvm/*|*/src/jvmMain/*) continue ;;
     esac
     hits=$(strip_comments "$file" | grep -nE \
       '(^|[^A-Za-z0-9_."])(java|javax)\.[a-zA-Z]|::class\.java|kotlin\.jvm\.|@JvmStatic|@JvmOverloads|@JvmField|System\.(getenv|err|out|getProperty)' \
@@ -68,7 +78,9 @@ for dir in "${SCOPE[@]}"; do
     if [ -n "$hits" ]; then
       if [ "$violations" -eq 0 ]; then
         echo "KMP purity gate FAILED — JVM-only references inside common-bound code:"
-        echo "  scope: bytecode/ obfuscate/ vm/ platform (platform/jvm whitelisted)"
+        echo "  scope: root bytecode/ obfuscate/ vm/ platform (platform/jvm whitelisted)"
+        echo "         + :lua-platform / :lua-bytecode-model / :lua-bytecode-io /"
+        echo "         :lua-bytecode-edit commonMain (jvmMain whitelisted)"
       fi
       while IFS= read -r hit; do
         echo "  $file:$hit"
