@@ -15,7 +15,7 @@
 | 单体 Gradle 工程拆分 | **已完成** | 12 个 KMP 模块（platform/model/io/edit/analysis/api/五个 feature/:lua-vm）+ 根（编排器/CLI）。|
 | commonMain KMP 核心 | **已完成** | 全部核心与 feature 代码位于 commonMain；尚只有 jvm target。|
 | jvmMain | **已完成（JVM 适配面）** | platform.jvm 装配、chunk 文件 io 适配器与各模块 jvmTest。|
-| jsMain 网页加密 | 未完成 | 后续提供浏览器 UI、Worker、版本/特性选择和下载。|
+| jsMain 网页加密 | **已完成（2026-09-21，Phase 6 前半）** | 全部库模块带 js(IR) target；:lua-runtime-js 提供浏览器可用混淆 API（common API 编排子集）、静态 UI + Worker + 下载与 JS 接缝装配（见 roadmap-kmp-progress.md Phase 6 前半）。|
 | nativeMain / Native CLI | 未完成 | 后续只发布 Native CLI，不再默认发布 JVM CLI。|
 | 可选特性插件发布 | 部分完成 | 各 feature（含 :lua-vm）已带 `maven-publish`；api/implementation 暴露面尚未梳理。|
 

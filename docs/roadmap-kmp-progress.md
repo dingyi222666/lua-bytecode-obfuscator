@@ -12,7 +12,7 @@
 | 3 | 第 3 步 | reader/writer 与 editor DSL 拆成独立模块（保留包名兼容 facade） | **完成（2026-09-21）** |
 | 4 | 第 4 步 | analysis 与各混淆 pass 逐个迁移为独立 feature artifact | **完成（2026-09-21）** |
 | 5 | 第 5 步 | VM 作为可选模块（source CFF / VM lift / 生成源码 staging 分别出报告） | **完成（2026-09-21）** |
-| 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | 未开始 |
+| 6 | 第 6 步 | jsMain 网页端 + nativeMain CLI；JVM 仅保留库调用与测试适配 | **前半完成（2026-09-21，jsMain 网页端）**；nativeMain CLI 未开始 |
 | 终验 | 第 7 步 | 现有 225 tests、三版本差分矩阵、VM 矩阵全绿验收 | 未开始 |
 
 ## Phase 1：:lua-bytecode-model（commonMain）
@@ -426,7 +426,135 @@ c10_ifchain_53、c14_numericfor_print_53/54/55）落入 `:lua-vm` jvmTest resour
 - `Options.inputObfuscation` 类型变更为 stage（breaking，pre-1.0 私有仓库，无仓库内调用方）。
 - TestFixtures 多副本 / api-implementation 暴露面 / js-native fixture expect/actual 等 Phase 4 遗留照旧。
 
+## Phase 6（前半）：jsMain 网页端（2026-09-21 完成）
+
+roadmap 第 6 步的前半：全部 12 个库模块获得 `js(IR)` target，新建 `:lua-runtime-js`
+网页端模块。验收条件达成："网页端只调用 common API；文件读取、Worker 和下载由
+jsMain 实现"。后半（nativeMain CLI）未开始。
+
+### js 目标矩阵（12/12 库模块 + 网页端）
+
+| 模块 | js(IR) | js 测试 | 备注 |
+|---|---|---|---|
+| :lua-platform | ✅ `js { nodejs() }` | —（无 commonTest） | 纯 common 接缝零改动通过 |
+| :lua-bytecode-model | ✅ | jsNodeTest（LuaInstructionTest） | 修 2 处 JVM `String.format` |
+| :lua-bytecode-io | ✅ | jsNodeTest（LuaChunkReaderTest） | fixture 型套件仍锁 jvmTest |
+| :lua-bytecode-edit | ✅ | — | |
+| :lua-bytecode-analysis | ✅ | — | 修 2 处 `sortedSetOf`（TreeSet） |
+| :lua-obfuscation-api | ✅ | jsNodeTest（Lcg/DecodeVariants） | BigInteger 奇偶校验移 jvmTest；mocha 超时 60s |
+| :lua-obfuscation-{strings,constants,jumps,cff,register} | ✅ | — | jumps/cff 各修 1 处 `sortedSetOf` |
+| :lua-vm | ✅ | jsNodeTest（CapabilityReport 契约） | `toSortedSet`/`removeIf`/`String.toByteArray` 修复 |
+| :lua-runtime-js（新） | ✅ js only | jsNodeTest 全套 e2e | `binaries.executable()`，UMD，见下 |
+
+配置要点：`js { nodejs() }`，**不用** browser target —— `build`/`check` 只跑
+`jsNodeTest`，CI 永不执行 karma/headless 浏览器/webpack（`js(IR)` 过时写法已换成
+`js {}`，2.4 起 IR 参数弃用）。
+
+### 接缝的 JS 装配（JsPlatform）
+
+`platform.jvm.JvmPlatform` 的对应物是 **:lua-runtime-js jsMain 的
+`platform.js`（包 `runtime.js`）`JsPlatform.install()`**，而非 :lua-platform
+jsMain——决策：decoder 资产属于 feature 模块（:lua-platform 在依赖图上无法看到
+它们），且 JS 没有通用的 classpath 机制；网页装配器是唯一的 JS 宿主装配点，
+放 runtime-js 与"JvmPlatform 曾是根模块装配器"的先例同构。
+
+* `SecureEntropy` — `crypto.getRandomValues`（浏览器/node≥19 全局 webcrypto；
+  node<19 落到 `require('crypto').webcrypto`），8 字节大端拼 Long。
+* `BundledChunkSource` — 服务 `LuaDecoderAssetsJs`（见下），路径契约与 JVM
+  classpath 版本一致（`/obfuscator/decode_*.luac`），未知路径返回 null。
+* `DebugLog` — 开关恒关（浏览器无环境变量），sink 走 `console.error`。
+* `TraceSink` — 丢弃（浏览器无 /tmp 哨兵）。
+
+### 资产投递：提交入库的生成 Kotlin 常量
+
+浏览器读不到 classpath 资源，6 个 decoder stub chunk（strings 3 个 +
+constants 3 个，共 ~2.6KB）以 **base64 常量**随 js 交付：
+`lua-runtime-js/src/jsMain/.../LuaDecoderAssetsJs.kt`（生成文件，已提交）。
+生成器 `tools/generate-js-decoder-assets.py` 读取两个 feature 模块的
+jvmMain 资源 → base64 + md5。一致性三角固定：
+
+* strings/constants 的 jvmTest `DecoderAssetIntegrityTest`：classpath 资源
+  md5 == 提交摘要（生成器输出硬编码 + 注释指回生成器）；
+* :lua-runtime-js `LuaDecoderAssetsJsTest`：常量解码后 md5 == 提交摘要
+  （`platform.Md5`），且每个资产用 `LuaChunkLoader` 完整解析、版本字节与
+  文件名一致；
+* 改任何 .luac 而不重新生成 → 两侧必有一侧 CI 红。
+
+### :lua-runtime-js 模块结构
+
+```text
+:lua-runtime-js（js only，依赖全部 12 个库模块的 js 变体；未发布变体冲突不存在——无 jvm 消费者）
+  jsMain  runtime.js.JsPlatform          接缝装配（上）
+          runtime.js.LuaDecoderAssetsJs  生成的资产常量（上）
+          runtime.js.WebObfuscator       @JsExport 公共 API + 编排器镜像
+          runtime.js.RuntimeMain         node 入口（平台安装，静默）
+          resources/web/index.html       静态页：文件读取 / 预设 / 下载
+          resources/web/worker.js        Worker：importScripts UMD → 驱动 API
+  jsTest  LuaDecoderAssetsJsTest / WebObfuscatorTest / WebUiAssetsSmokeTest
+```
+
+* **WebObfuscator API**（只调用 common API）：`obfuscateLuaChunk(inputBase64,
+  request)` → `WebObfuscationResultJs(chunkBase64, version, reportText,
+  masterSeed)`；`inspectLuaChunk`。request = preset(none/light/balanced/
+  aggressive) + masterSeed + expectedVersion + stripDebugInfo。编排器
+  `obfuscateWebSubset` 是根模块 LuaObfuscator 的逐行镜像——同 pass 顺序、
+  同 seed stamping、同 CFF/Pass-K 耦合——仅去掉根独有的 keyRenaming（文档
+  注明两侧必须同步修改）。
+* **UMD**：`outputModuleName` 显式钉为 `luabytecodeWebRuntime`（默认名由
+  Gradle 工程坐标推导，避免漂移）；worker `importScripts` 后从
+  `self["luabytecodeWebRuntime"]` 取 API。未配置任何 npm 依赖、webpack 或
+  karma。
+* **webDist**：开发者便利 Sync 任务（链接产物改名 `luabytecode-runtime.js`
+  + `jsProcessResources` → `build/web`），**不挂进 build/check 依赖链**，
+  CI 不跑浏览器；本地 `./gradlew :lua-runtime-js:webDist` 后打开
+  `build/web/web/index.html`。
+* `RuntimeMain.main()` 只做 `JsPlatform.install()`（可执行链接需要 main）。
+
+### 测试清单（jsNodeTest）
+
+| 测试 | 断言 |
+|---|---|
+| LuaDecoderAssetsJsTest（4 个） | 6 资产 md5 一致 + 全量解析/版本匹配 + null 契约 + JsPlatform 熵/资产/调试冒烟 |
+| WebObfuscatorTest（6 个） | balanced（经 JS 资产接缝）/aggressive（bank_53，JVM 全栈同 fixture）/none 输出可被自身 loader 重载；钉 seed 复现；inspect；4 条错误路径 |
+| WebUiAssetsSmokeTest（3 个） | 静态页含文件读取/Worker/下载接线；worker 引用钉住的模块名与 `obfuscateLuaChunk`；mock 级 API 形状（真实浏览器行为不进 CI） |
+| 各库模块 commonTest 原有套件 | js 平台自动获得（fixture 型套件仍锁 jvmTest） |
+
+### commonMain 上的 js 兼容修复（Phase 6 期间）
+
+| 位置 | 问题 | 处理 |
+|---|---|---|
+| model LuaBytecodeVersion/LuaInstruction | `"0x%02X".format` 解析到 JVM `String.format`（Phase 2 的误判） | 内部 `versionByteHex`/`instructionHex`（stdlib，位一致） |
+| analysis LuaDataFlow/LuaConstantReferences、jumps、cff | `sortedSetOf` = java.util.TreeSet | 普通 Set 去重 + 读取时 `sorted()`（迭代序一致） |
+| api LuaObfuscationEditing | `MutableList.replaceAll`（JVM 默认方法） | 下标原地重写 |
+| vm LuaVmInterpreter | `removeIf` | `removeAll { }`（common） |
+| vm LuaVmSourceErrors | 无参 `String.toByteArray()` 是 JVM Charset 默认参重载 | `encodeToByteArray()` |
+| cff CffControlPackets | `Integer.highestOneBit` | `countLeadingZeroBits` helper |
+| api commonTest | `toByteArray(Charsets.UTF_8)`、java.math.BigInteger、Math.floorDiv/Mod | `encodeToByteArray()`；BigInteger 测试移 jvmTest；common floorDiv/mod 扩展 |
+| api build | 2M 步全宽 no-repeat 走查超 mocha 2s 默认超时 | jsNodeTest `useMocha { timeout = "60s" }`（工作负载两平台一致） |
+
+### Phase 6（前半）验证
+
+按提交序列逐个 CI 验证（`gh run watch`）：
+
+- platform + model js target：run 35567250967（红，String.format）→ 35567633087（绿）
+- io/edit/analysis：run 35567827069（红，sortedSetOf）→ 35568104713（绿）
+- api/五 feature/vm：run 35568377371（红，replaceAll/removeIf）→ 35568547061（红，Integer/String.toByteArray）→ 35568992992（红，commonTest Charsets/BigInteger）→ 35569194145（红，Math.floorMod 等）→ 35569425492（红，mocha 超时）→ 35569715892（绿）
+- :lua-runtime-js 骨架 + 资产投递：run 35570310090（绿）
+- WebObfuscator API + e2e + 静态 UI + 冒烟：见本节末尾补记的最终绿 run
+
+### Phase 6（前半）遗留项
+
+* nativeMain CLI（roadmap 第 6 步后半）未开始。
+* 浏览器内真实 Worker/下载行为只有静态冒烟，未做 headless 集成（CI 原则：
+  不跑浏览器）；首次真实使用建议手动 `webDist` 后过一遍页面。
+* `WebObfuscator` 未暴露 VM staging（:lua-vm 已在依赖内，待需求出现时加
+  stage 注入口）。
+* feature 模块的 fixture 型 jvmTest 与 9 份 TestFixtures 副本照旧（js 侧
+  fixture 加载未做 expect/actual，js 测试全部用内嵌 base64 fixture）。
+* api-implementation 暴露面、TestFixtures 收敛等 Phase 4/5 遗留照旧。
+
 ## Phase 1：问题记录（历史）
+
 
 - Gradle 多模块 + Kotlin 插件版本声明：根模块已通过 kotlin jvm 2.4.20 把 `kotlin-gradle-plugin` jar 放上共享构建 classpath，子模块再以带版本方式请求 `kotlin("multiplatform")` 会抛 `InvalidPluginRequestException`。解法：根 `plugins {}` 里 `id("org.jetbrains.kotlin.multiplatform") version "2.4.20" apply false`，子模块不带版本直接 apply。后续新增模块沿用此模式。
 - CI runner 网络抖动复现一次（GnuTLS recv error -110），重跑即恢复，与代码无关。

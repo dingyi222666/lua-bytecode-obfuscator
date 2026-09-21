@@ -15,7 +15,8 @@ import io.github.dingyi222666.luabytecode.bytecode.io.LuaChunkWriter
 import io.github.dingyi222666.luabytecode.obfuscate.CffConstantExpansion
 import io.github.dingyi222666.luabytecode.obfuscate.CffPrototypeReport
 import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationConfig
-import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationPhase\nimport io.github.dingyi222666.luabytecode.obfuscate.ObfuscationReport
+import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationPhase
+import io.github.dingyi222666.luabytecode.obfuscate.ObfuscationReport
 import io.github.dingyi222666.luabytecode.obfuscate.SeedPolicy
 import io.github.dingyi222666.luabytecode.obfuscate.LuaBlockCloning
 import io.github.dingyi222666.luabytecode.obfuscate.LuaConstantEncryptor
