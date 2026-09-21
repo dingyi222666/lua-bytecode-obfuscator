@@ -34,24 +34,24 @@ SCOPE=(
   src/main/kotlin/io/github/dingyi222666/luabytecode/obfuscate
   src/main/kotlin/io/github/dingyi222666/luabytecode/vm
   src/main/kotlin/io/github/dingyi222666/luabytecode/platform
-  lua-platform/src/commonMain
-  lua-bytecode-model/src/commonMain
-  lua-bytecode-io/src/commonMain
-  lua-bytecode-edit/src/commonMain
-  lua-bytecode-analysis/src/commonMain
-  lua-obfuscation-api/src/commonMain
-  lua-obfuscation-strings/src/commonMain
-  lua-obfuscation-constants/src/commonMain
-  lua-obfuscation-jumps/src/commonMain
-  lua-obfuscation-cff/src/commonMain
-  lua-obfuscation-register/src/commonMain
-  lua-vm/src/commonMain
-  lua-obfuscation-pipeline/src/commonMain
+  modules/platform/lua-platform/src/commonMain
+  modules/bytecode/lua-bytecode-model/src/commonMain
+  modules/bytecode/lua-bytecode-io/src/commonMain
+  modules/bytecode/lua-bytecode-edit/src/commonMain
+  modules/bytecode/lua-bytecode-analysis/src/commonMain
+  modules/obfuscation/lua-obfuscation-api/src/commonMain
+  modules/obfuscation/lua-obfuscation-strings/src/commonMain
+  modules/obfuscation/lua-obfuscation-constants/src/commonMain
+  modules/obfuscation/lua-obfuscation-jumps/src/commonMain
+  modules/obfuscation/lua-obfuscation-cff/src/commonMain
+  modules/obfuscation/lua-obfuscation-register/src/commonMain
+  modules/obfuscation/lua-vm/src/commonMain
+  modules/obfuscation/lua-obfuscation-pipeline/src/commonMain
   # Host modules have no commonMain today (jsMain / nativeMain only — those are
   # platform-bound by design and NOT scanned). Listed so a future common source
   # set appears in the gate automatically; missing directories are skipped.
-  lua-runtime-js/src/commonMain
-  lua-cli-native/src/commonMain
+  apps/lua-runtime-js/src/commonMain
+  apps/lua-cli-native/src/commonMain
 )
 
 strip_comments() {

@@ -12,6 +12,9 @@ deliveries: it reads the JVM resources and regenerates
     lua-runtime-js/src/jsMain/kotlin/io/github/dingyi222666/luabytecode/runtime/js/LuaDecoderAssetsJs.kt
     lua-cli-native/src/nativeMain/kotlin/io/github/dingyi222666/luabytecode/cli/LuaDecoderAssetsNative.kt
 
+(after the monorepo regrouping the physical roots are apps/lua-runtime-js and
+apps/lua-cli-native; the script below already points there.)
+
 The md5 digests it emits are asserted on the JVM side by the
 DecoderAssetIntegrityTest of both feature modules and on the js / native sides
 by the LuaDecoderAssetsJsTest / LuaDecoderAssetsNativeTest suites — editing
@@ -28,24 +31,24 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 ASSETS = {
     "/obfuscator/decode_53.luac":
-        ROOT / "lua-obfuscation-strings/src/jvmMain/resources/obfuscator/decode_53.luac",
+        ROOT / "modules/obfuscation/lua-obfuscation-strings/src/jvmMain/resources/obfuscator/decode_53.luac",
     "/obfuscator/decode_54.luac":
-        ROOT / "lua-obfuscation-strings/src/jvmMain/resources/obfuscator/decode_54.luac",
+        ROOT / "modules/obfuscation/lua-obfuscation-strings/src/jvmMain/resources/obfuscator/decode_54.luac",
     "/obfuscator/decode_55.luac":
-        ROOT / "lua-obfuscation-strings/src/jvmMain/resources/obfuscator/decode_55.luac",
+        ROOT / "modules/obfuscation/lua-obfuscation-strings/src/jvmMain/resources/obfuscator/decode_55.luac",
     "/obfuscator/decode_num_53.luac":
-        ROOT / "lua-obfuscation-constants/src/jvmMain/resources/obfuscator/decode_num_53.luac",
+        ROOT / "modules/obfuscation/lua-obfuscation-constants/src/jvmMain/resources/obfuscator/decode_num_53.luac",
     "/obfuscator/decode_num_54.luac":
-        ROOT / "lua-obfuscation-constants/src/jvmMain/resources/obfuscator/decode_num_54.luac",
+        ROOT / "modules/obfuscation/lua-obfuscation-constants/src/jvmMain/resources/obfuscator/decode_num_54.luac",
     "/obfuscator/decode_num_55.luac":
-        ROOT / "lua-obfuscation-constants/src/jvmMain/resources/obfuscator/decode_num_55.luac",
+        ROOT / "modules/obfuscation/lua-obfuscation-constants/src/jvmMain/resources/obfuscator/decode_num_55.luac",
 }
 
 TARGETS = {
     "js": (ROOT /
-           "lua-runtime-js/src/jsMain/kotlin/io/github/dingyi222666/luabytecode/runtime/js/LuaDecoderAssetsJs.kt"),
+           "apps/lua-runtime-js/src/jsMain/kotlin/io/github/dingyi222666/luabytecode/runtime/js/LuaDecoderAssetsJs.kt"),
     "native": (ROOT /
-               "lua-cli-native/src/nativeMain/kotlin/io/github/dingyi222666/luabytecode/cli/LuaDecoderAssetsNative.kt"),
+               "apps/lua-cli-native/src/nativeMain/kotlin/io/github/dingyi222666/luabytecode/cli/LuaDecoderAssetsNative.kt"),
 }
 
 PACKAGE = {

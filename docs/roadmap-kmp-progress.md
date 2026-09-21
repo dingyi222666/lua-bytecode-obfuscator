@@ -771,3 +771,19 @@ native 测试首次链接（2M 步 LCG 走查在 debug 测试二进制上的首�
 
 - Gradle 多模块 + Kotlin 插件版本声明：根模块已通过 kotlin jvm 2.4.20 把 `kotlin-gradle-plugin` jar 放上共享构建 classpath，子模块再以带版本方式请求 `kotlin("multiplatform")` 会抛 `InvalidPluginRequestException`。解法：根 `plugins {}` 里 `id("org.jetbrains.kotlin.multiplatform") version "2.4.20" apply false`，子模块不带版本直接 apply。后续新增模块沿用此模式。
 - CI runner 网络抖动复现一次（GnuTLS recv error -110），重跑即恢复，与代码无关。
+
+## Monorepo 目录重组（终验后）
+
+应用户要求，把平铺在仓库根的 14 个模块目录收进多级结构（典型 monorepo 布局）。**Gradle 逻辑项目路径全部不变**（settings.gradle.kts 用 `project(...).projectDir` 重映射），依赖写法 `project(":lua-xxx")`、maven-publish 坐标、任务路径（如 `:lua-cli-native:linkReleaseExecutableNative`）零改动。
+
+```text
+modules/
+  platform/    lua-platform
+  bytecode/    lua-bytecode-{model, io, edit, analysis}
+  obfuscation/ lua-obfuscation-{api, pipeline, strings, constants, jumps, cff, register}, lua-vm
+apps/
+  lua-cli-native          # 默认 CLI（native）
+  lua-runtime-js          # 网页运行时
+```
+
+同步更新的物理路径引用：`settings.gradle.kts`（projectDir 重映射）、`tools/verify-kmp-purity.sh`（SCOPE）、`tools/generate-js-decoder-assets.py`（资产源与生成目标）、`.github/workflows/verify.yml`（native CLI smoke 的可执行路径）、`docs/vm-status-report.md`（现行代码出处）。历史章节的旧路径按当时状态保留。

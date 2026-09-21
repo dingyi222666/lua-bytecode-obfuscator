@@ -9,7 +9,7 @@ Phase 5（模块化与报告契约）。
 ## 1. 报告四分类（契约结构）
 
 `LuaVmObfuscation.CapabilityReport`
-（`lua-vm/src/commonMain/.../vm/LuaVmObfuscation.kt`）恒以固定顺序携带四个
+（`modules/obfuscation/lua-vm/src/commonMain/.../vm/LuaVmObfuscation.kt`）恒以固定顺序携带四个
 category，另有一个不属于四分类的 staging 上下文条目：
 
 | id | 语义 | 当前状态 |
@@ -31,7 +31,7 @@ category，另有一个不属于四分类的 staging 上下文条目：
 * 结构与语义：`LuaVmObfuscation.kt`（`CapabilityStatus.label` 含
   `not_implemented`；`categories` 固定顺序；`targetBytecodeCff` 默认值即
   `NOT_IMPLEMENTED` 并自带 pending 说明）。
-* 契约测试：`lua-vm/src/commonTest/.../LuaVmCapabilityReportContractTest.kt`
+* 契约测试：`modules/obfuscation/lua-vm/src/commonTest/.../LuaVmCapabilityReportContractTest.kt`
   ——四分类 id/顺序、目标 CFF `not_implemented`、`complete` 在全部可达状态
   组合下恒 false；该测试位于 commonTest，随 jvm/js/linuxX64 三端测试运行。
 * CLI 输出：`--vm-out` 逐行打印 `<id>: <label> - <details>` 与
@@ -79,7 +79,7 @@ category，另有一个不属于四分类的 staging 上下文条目：
 
 拒绝是**正确行为**（子集外输入绝不产出错误程序）；CLI 把拒绝映射为
 **exit 3**，与崩溃（其他非零）和成功可区分（adversarial audit M6）。
-出处均为 `lua-vm/src/commonMain/.../vm/LuaVmTranslator.kt`（除注明外）：
+出处均为 `modules/obfuscation/lua-vm/src/commonMain/.../vm/LuaVmTranslator.kt`（除注明外）：
 
 | # | 拒绝原因 | 触发条件 |
 |---|---|---|
