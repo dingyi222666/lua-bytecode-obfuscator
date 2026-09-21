@@ -37,6 +37,12 @@ kotlin {
         }
     }
 
+    // Native target (roadmap step 6b): the orchestrator compiles for the
+    // linux X64 toolchain unchanged — :lua-cli-native assembles the native
+    // CLI on top of it; the asset free commonTest contract suite runs on
+    // native too.
+    linuxX64()
+
     sourceSets {
         commonMain.dependencies {
             implementation(kotlin("stdlib"))

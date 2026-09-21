@@ -26,6 +26,10 @@ kotlin {
         nodejs()
     }
 
+    // Native target (roadmap step 6b): the common code compiles for the
+    // linux X64 toolchain unchanged; commonTest suites run on native too.
+    linuxX64()
+
     sourceSets {
         commonMain.dependencies {
             implementation(kotlin("stdlib"))
